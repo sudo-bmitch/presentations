@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Frequently Answered Queries on StackOverflow - BoxBoat</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+name: centered
+layout: true
+class: center, middle
+---
+layout: false
+class: title
+
+# Frequently Answered Queries
+# from StackOverflow
+
+.left-column[
+.pic-50[![BoxBoat](img/boxboat-logo-color.png)]
+]
+.right-column[.align-right[.no-bullets[
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- StackOverflow: bmitch
+]]]
+
+???
+
+- This talk is geared towards people that have a working knowledge of docker.
+
+- Most of this talk is answering different questions, if you get lost at any
+  point, sit tight for a minute and we'll get to a different question.
+
+- I've answered almost 1k questions on the docker tag on SO. But why?
+
+---
+
+# How Do We Learn?
+
+???
+
+- I wanted to learn Docker inside out. Partially for curiosity, partially
+because I really enjoyed working with it, and mostly because it was my new job.
+
+--
+
+- RTFM
+
+- Practice
+
+- Drills
+
+- Teaching
+
+???
+
+- Docker has some fine docs, and where it's lacking, you can always submit PR's.
+
+- Play With Docker gets you quick practice.
+
+- Drills to me is working through a list of questions, and implies that the
+  answer is already there and you're just trying to remember it.
+
+- Teaching requires you learn something well enough to explain it to others.
+
+- The last two sum up StackOverflow for me.
+
+- I don't learn docker so I can answer questions
+
+- I answer questions so I can learn docker
+
+---
+
+# Typical StackOverflow User Background
+
+- Mostly developers
+
+- Often more comfortable with an IDE than a CLI
+
+- DevOps is shifting those Devs into more Ops tasks
+
+- Pro: devs no longer depend on ops to manage their app runtime environment
+
+--
+
+- Con: devs no longer depend on ops to manage their app runtime environment
+
+- Devs are now learning OS/Linux/distributions, scripting, package managers,
+  networking, and storage.
+
+???
+- The result: lots of smart developers making common mistakes.
+
+---
+
+template: inverse
+
+# General Docker Questions
+
+---
+
+# Q: How do containers differ from VM's
+
+- Containers have a shared kernel, application isolation vs hardware isolation
+
+- How do we change the mindset of people using containers as a lightweight VM?
+
+???
+
+- Namesapces and cgroups, not virtualized hardware.
+
+- Yet people still cram 5 different apps into a single container and upgrade
+  in place, how do we change that?
+
+--
+
+  - Who likes uptime?
+
+???
+
+- Everyone with their hands down are probably texting their boss to explain why
+  everything is down equals "working as designed".
+
+--
+
+  - Who wants to maintain a server that hasn't been rebooted for 3 years, and
+    the original admin has left?
+
+???
+
+- It's got uptime, probably vulnerable to spectre/meltdown and lots of other
+  exploits, along with being a really old framework no one likes.
+
+--
+  - Uptime quickly becomes a ticking time bomb.
+
+???
+
+- Upgrades are out of the question since you don't know what could break or how
+  to fix it or how to revert. There's a transition point where uptime goes from
+  desired to risky.
+
+- That transition point is as soon as you get state drift.
+
+--
+
+- What we want is availability, not uptime. We want a LB pointing to replicas
+  spread across multiple AZ's so we can have __low uptime__ and __high availability__.
+
+???
+
+- The fix is continuous delivery, infrastructure as code, immutability and disposability.
+
+- People using containers as lightweight VM's are making pets, they'll end up
+  a 3 year old container that no one knows how it works. Those doing it right
+  will manage a farm of cattle.
+
+---
+
+# Q: How do containers differ from VM's
+
+Practical differences:
+
+- Don't ssh into containers (exec, and only in dev)
+
+- Don't upgrade containers in place (replace them)
+
+- Don't install multiple apps inside a single container (compose files)
+
+- Don't give containers static IP's (LB/reverse proxies)
+
+- Don't backup containers (backup volumes)
+
+- Don't export containers to make new images (use a Dockerfile)
+
+???
+
+- Treat containers as immutable and disposable.
+
+- Learn from others mistakes:
+
+  - The worst answer I had to give to someone was that they wasted months of work
+    and had to start all over.
+  - They had been maintaining their container without a Dockerfile, applying
+    updates in place, and periodically running an export / import. 
+  - One day they lost their image, maybe they ran a bad rmi, maybe filesystem
+    corruption, maybe they hit the layer limit.
+  - A Dockerfile and versioned images would give them not only a quick way to
+    revert, but also to completely recreate without some of the day 1 cruft.
+
+---
+# Q: Can I use docker to run different OS's?
+
+???
+
+- People asking this question often want to run Windows binaries on Linux
+  using docker.
+
+--
+## A: Nope
+--
+*
+
+.small[*terms and conditions apply]
+
+---
+# Q: Can I use docker to run different OS's?
+
+The base of the OS is the kernel, docker containers run on the same kernel.
+
+```
+$ uname -v
+#1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02)
+
+$ docker run --rm ubuntu uname -v
+#1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02)
+
+$ docker run --rm centos uname -v
+#1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02)
+
+$ docker run --rm alpine uname -v
+#1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02)
+```
+
+---
+# Q: Can I use docker to run different OS's?
+
+Terms and Conditions:
+
+- Base images are an OS to some people.
+
+- Docker runs on different platforms.
+
+- Swarm can include nodes from different platforms.
+
+- Desktops typically include embedded VMs.
+
+- Default `runc` can be swapped for a VM runtime.
+
+???
+
+- The OS images each give a different base filesystem, different libraries,
+  different package managers, and upstream repos to pull packages.
+
+- Docker does run on multiple OS's, e.g. linux x86-64, linux arm64, windows,
+  ppc64, s390. The image needs to match that OS arch, and we now have manifests
+  that can point to multiple images using a single name.
+
+- Swarm mode can have a mix of nodes running different OS's.
+
+- Desktops typically run inside a VM running LinuxKit. MacOS is not a supported
+  OS, Linux runs with xhyve. Windows has a HyperV solution for Linux.
+
+- The runtime can be changed to launch VM's instead of containers.
+
+---
+
+# Q: How do I pick a base image?
+
+--
+
+## A: It depends.
+
+???
+
+- Variety is why Docker took off, you're not locked into someone else's
+  "right answer"
+
+--
+
+- Stick with tools you know
+
+- Leverage existing open source resources
+
+- Minimize your overhead and attack surface
+
+- Statically compile binaries
+
+???
+
+- RHEL environments often use CentOS
+
+- Debian is a common base for existing open source projects
+
+- Alpine and Busybox have very small attack surfaces
+
+- Scratch is used for no base image at all
+
+---
+
+template: inverse
+
+# Dockerfile
+
+---
+
+# Q: Why doesn't RUN work?
+
+Why am I getting `./build.sh` is not found?
+```
+RUN cd /app/src
+RUN ./build.sh
+```
+
+--
+
+- The only part saved from a RUN is the filesystem (as a new layer).
+
+- Environment variables, launched daemons, and the shell state are all
+  discarded with the temporary container when pid 1 exits.
+
+???
+
+- `RUN` launches a temporary container and executes the command.
+
+--
+
+- Solution: merge multiple lines with `&&`:
+
+```
+RUN cd /app/src && ./build.sh
+```
+
+???
+
+- I've also seen `set -e` used with a multi-line run command
+
+- You want to be sure to exit with an error if any command fails
+
+---
+
+# Q: Do I use ENTRYPOINT or CMD?
+
+- Either alone have the same effect.
+
+- CMD is overridden by 
+  ```
+  docker run my_image ${cmd}
+  ```
+
+- ENTRYPOINT is overridden by 
+  ```
+  docker run --entrypoint ${entrypoint} my_image
+  ```
+
+- Used together, docker runs `${entrypoint} ${cmd}`
+
+???
+
+- Some use entrypoint as the command being run, e.g. Docker's UCP containers
+  run the "ucp" command. While CMD is all the args to that command, like "install"
+
+- In practice, I use entrypoint to initialize the container.
+
+- I make the entrypoint transparent, performing an exec on the command at the end
+
+- Initialize activities include:
+
+  - Importing secrets into environment variables
+  - Adjusting UID/GID to match volume mounts
+  - Injecting an init command like tini
+  - Using gosu to drop from root to user
+
+---
+
+# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
+
+- RUN, CMD, and ENTRYPOINT can each use either syntax
+
+- The string syntax includes a shell, `/bin/sh -c "${cmd}"` by default.
+
+- The json syntax executes the command directly, without a shell.
+
+???
+
+--
+
+.left-column[
+Shell Pros:
+- Expands variables
+- Command chaining (`&&`)
+- I/O redirection
+]
+
+--
+
+.right-column[
+Shell Cons:
+- Intercepts signals
+- Extra processing to merge entrypoint with cmd
+]
+
+---
+
+# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
+
+String/Shell Syntax:
+
+```
+RUN echo hello world
+ENTRYPOINT /entrypoint.sh
+CMD run a b c
+```
+
+--
+
+Json/Exec Syntax:
+
+```
+RUN ["echo", "hello", "world"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["run", "a", "b", "c"]
+```
+
+???
+
+- If you have any typos, invalid quotes, missing commas or bracket, docker will
+  treat the bad json as a string to run.
+
+---
+
+# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
+
+What if cmd is a string and you have an entrypoint?
+
+```
+/entrypoint.sh /bin/sh -c "args to entrypoint"
+```
+
+--
+
+To fix this in the entrypoint:
+
+```
+#!/bin/sh
+if [ $# -gt 1 -a "$1" = "/bin/sh" -a "$2" = "-c" ]; then
+  shift 2
+  eval "set -- $1"
+fi
+exec "$@"
+```
+
+???
+
+- The final `exec` is what makes an entrypoint transparent to the command being
+  run. Pid 1 gets replaced by the command and any initialization may be done
+  before the command is executed.
+
+---
+
+# Q: Why can't I extend this image?
+```
+FROM busybox as parent
+CMD echo hello cmd
+FROM parent
+COPY entrypoint.sh /
+ENTRYPOINT [ "/entrypoint.sh" ]
+```
+
+```
+$ cat entrypoint.sh
+#!/bin/sh
+echo hello entrypoint
+exec "$@"
+```
+
+What does this output?
+
+???
+
+- If you don't recognize the `FROM` lines, this is using a multi-stage build
+  to simulate extending one image with another image. It could have been two
+  different Dockerfiles.
+
+- Again, the entrypoint is transparent, passing through the command at the end.
+
+- Does this output "hello entrypoint", "hello command", both, or neither?
+
+---
+
+# Q: Why can't I extend this image?
+
+```no-highlight
+$ docker run -it --rm test-entrypoint
+hello entrypoint
+$
+```
+
+- Typically a child image will extend it's parent image, and any metadata
+  will be inherited.
+
+--
+
+- One exception: when setting an `ENTRYPOINT` the value of `CMD` from parent
+  images is nulled out.
+
+???
+
+- This avoids unexpected behaviors if a parent image changes from an entrypoint
+  to a command.
+
+---
+
+# Q: Why doesn't build use the cache?
+
+.left-column[
+Cache requires:
+
+- Same command to be run
+
+- Same checksum on all files
+
+- Same previous layer
+
+- Image was built locally
+]
+
+--
+
+.right-column[
+Cache can be broken by:
+
+- Changing a build `ARG` value
+
+- Changing a timestamp
+
+- The previous layer being rebuilt
+]
+
+--
+
+.no-column[
+To trust images pulled from a registry, use:
+```
+docker build --cache-from my_image ...
+```
+]
+
+---
+
+# Q: Should I use COPY or ADD?
+
+## A: Use COPY 
+--
+(when possible)
+
+--
+
+ADD provides additional features which comes with additional overhead:
+
+- Pulls URL's
+
+- Extracts tar files including compressed files
+
+???
+
+- Tar file extraction must be local, not a URL
+
+- Compressed files includes gzip, bzip, and xz
+
+- If you wanted a tar file copied into the image, this could result in
+  unexpected behaviors
+
+---
+
+# Q: Should I use COPY or ADD?
+
+Both ADD and COPY:
+
+- Cannot access local files outside of the build context
+
+- Create a directory in the container if needed
+
+- Copy the contents of the directory rather than the directory itself
+
+- Default to creating files with uid/gid 0
+
+  - Use `--chown` and `--chmod` to correct permissions
+
+???
+
+- Most every base image starts with an `ADD` command to populate the root
+  filesystem.
+
+- The build context is the trailing `.` in many build commands.
+
+- Since docker is a client/server tool, everything needed to perform the build
+  must be sent to the server in the build command, and docker does not provide
+  access to the host outside of the context.
+---
+
+# <span class="bg-white">Q: Can I define runtime options in a Dockerfile?</span>
+
+## A: Nope
+--
+... that's what a compose file is for.
+
+.left-column[
+The Dockerfile cannot:
+
+- Specify the image name
+
+- Publish ports
+
+- Mount volumes
+
+- Add capabilities
+]
+
+--
+
+.right-column[
+Consider the security vulnerabilities if you could.
+]
+
+???
+
+- Building an image is considered a fairly safe operation, what if a shared
+  build environment created an image that labeled itself alpine:latest?
+
+- Docker ships secure by default
+
+- The main risk out of the box is a DoS attack
+
+- Options like these each expose a potential risk
+
+  - Could mount a volume allowing an attacker to read or write every file on the host
+
+  - Could grant capabilities that allow the process to break out of the container
+
+- Leave it up to the person running the image to decide if an how to take that risk
+
+---
+
+# Q: Why is my image so large?
+
+How big are the layers resulting from this Dockerfile:
+```
+FROM busybox
+
+RUN mkdir /data
+RUN dd if=/dev/zero bs=1024 count=1024 of=/data/one
+RUN chmod -R 0777 /data
+RUN dd if=/dev/zero bs=1024 count=1024 of=/data/two
+RUN chmod -R 0777 /data
+RUN rm /data/one
+
+CMD ls -alh /data
+```
+
+???
+
+- 5 commands:
+  - Create 1M /data/one
+  - Change permissions
+  - Create 1M /data/two
+  - Change permissions
+  - Remove /data/one
+
+- This could easily be:
+  - Download code from git
+  - Extract code
+  - Compile app
+  - Make app executable
+  - Remove download and source
+
+---
+
+# Q: Why is my image so large?
+
+- Running the image you see the 1MB file:
+  ```
+  -rwxrwxrwx    1 root     root        1.0M May 12 00:14 two
+  ```
+
+- Each `dd` command adds a 1MB layer.
+
+--
+
+- Each `chmod` command will change permissions and copy the entire 1MB file
+  to the next layer.
+
+--
+
+- What does the `rm` command do to the image size?
+
+---
+
+class: small
+
+# Q: Why is my image so large?
+
+The `rm` command only changes directory metadata in the next layer:
+
+
+```
+Step 6/7 : RUN chmod -R 0777 /data
+ ---> Running in 038bd2bc5aea
+* ---> 77793bf30d5f
+Step 7/8 : RUN rm /data/one
+ ---> Running in 504c6e9b6637
+* ---> 9fe0e2f18893
+...
+
+$ docker image ls -a | grep 77793bf30d5f
+REPOSITORY     TAG           IMAGE ID         CREATED             SIZE
+<none>         <none>        77793bf30d5f     10 minutes ago      6.37MB
+$ docker image ls -a | grep 9fe0e2f18893
+REPOSITORY     TAG           IMAGE ID         CREATED             SIZE
+<none>         <none>        9fe0e2f18893     10 minutes ago      6.37MB
+```
+
+---
+
+# Q: Why is my image so large?
+
+- Resulting 1MB file has become 4MB on disk and over the network
+
+- Compare the two resulting images to see the added disk space:
+  ```
+  REPOSITORY   TAG     IMAGE ID      CREATED         SIZE
+  busybox      latest  54511612f1c4  8 months ago    1.13MB
+  test-layers  latest  757ce49dd12f  10 minutes ago  6.37MB
+  ```
+
+- Subtracting the two you get the expected ~5MB
+
+---
+
+# Q: Why is my image so large?
+
+- 5MB? Not 4MB? Where did the extra 1MB come from?
+
+```
+FROM busybox
+RUN mkdir /data
+RUN dd if=/dev/zero bs=1024 count=1024 of=/data/one
+RUN chmod -R 0777 /data
+RUN dd if=/dev/zero bs=1024 count=1024 of=/data/two
+RUN chmod -R 0777 /data
+RUN rm /data/one
+CMD ls -alh /data
+```
+
+--
+
+- A `chmod` or `chown` changes a timestamp on the file
+  _even when there is no permission or ownership change made_.
+
+???
+
+- The recursive `chmod` and `chown` commands you run to fix permissions and run
+  will always include every file in that directory in the new layer.
+
+---
+
+# Q: Why is my image so large?
+
+How can we examine layers? Build with `docker build --rm=false .`
+
+```
+...
+Step 2/7 : RUN mkdir /data
+* ---> Running in 04c5fa1360b0
+ ---> 9b4368667b8c
+Step 3/7 : RUN dd if=/dev/zero bs=1024 count=1024 of=/data/one
+* ---> Running in f1b72db3bfaa
+1024+0 records in
+1024+0 records out
+1048576 bytes (1.0MB) copied, 0.006002 seconds, 166.6MB/s
+ ---> ea2506fc6e11
+```
+
+???
+
+- This leaves the temporary containers around used during the build
+
+- Docker used to leave them around by default, but they took up space and
+  people rarely used them
+
+- Until now...
+
+---
+
+# Q: Why is my image so large?
+
+Check each temp image with `docker diff ${cid}`
+
+.small[
+```
+$ docker diff 04c5fa1360b0  # mkdir /data
+A /data
+*$ docker diff f1b72db3bfaa  # dd if=/dev/zero bs=1024 count=1024 of=/data/one
+C /data
+*A /data/one
+*$ docker diff 81c607555a7d  # chmod -R 0777 /data
+C /data
+*C /data/one
+$ docker diff 1bd249e1a47b  # dd if=/dev/zero bs=1024 count=1024 of=/data/two
+C /data
+A /data/two
+*$ docker diff 038bd2bc5aea  # chmod -R 0777 /data
+*C /data/one
+*C /data/two
+$ docker diff 504c6e9b6637  # rm /data/one
+C /data
+*D /data/one
+```
+]
+
+???
+
+- The `/data/one` file is created once with `A`, changed twice (`C`), and then
+  it's deleted (`D`) which also changes the metadata on `/data`.
+
+- Each of these `docker diff` commands is a view into the layered filesystem,
+  and every layer is shipped with an image, it's not squashed automatically.
+
+---
+
+# Q: Why is my image so large?
+
+### Reducing image size by merging RUN lines:
+
+.small[
+```
+FROM busybox
+
+RUN mkdir /data \
+ && dd if=/dev/zero bs=1024 count=1024 of=/data/one \
+ && chmod -R 0777 /data \
+ && dd if=/dev/zero bs=1024 count=1024 of=/data/two \
+ && chmod -R 0777 /data \
+ && rm /data/one
+
+CMD ls -alh /data
+```
+]
+
+The previous 5MB is now just 1MB:
+
+```
+REPOSITORY    TAG      IMAGE ID      CREATED             SIZE
+busybox       latest   54511612f1c4  8 months ago        1.13MB
+test-layers2  latest   951252cf34ed  25 seconds ago      2.18MB
+```
+
+???
+
+- Merge the `RUN` commands by joining each command with a `&&` and span
+  multiple lines with a `\`.
+
+- Do the same when downloading source or temporary files, same with
+  apt-get update/clean, do those in the same RUN line.
+
+---
+
+template: inverse
+
+# Run
+
+---
+
+# Q: What does "invalid reference format" mean?
+
+- A reference is a pointer to an image.
+
+- The docker command line is order dependent:
+  ```
+  docker ${docker_args} run ${run_args} image ${cmd}
+  ```
+
+- Frequently happens when an invalid arg gets parsed as the image name or
+  invalid characters from copy/pasting from a source that changes dashes
+  and quotes.
+
+- What does docker interpret as the image name here:
+  ```
+  my project$ docker run -it —rm -v $(pwd):/data “my_image”
+  ```
+
+???
+
+- References can be the image name and tag, name and default to latest, image id,
+  with or without a registry, or it can be pinned to a sha256 hash.
+
+- The first thing after the run command that isn't a valid arg is treated as
+  the image reference.
+
+- Commonly see with wrong type of `-`, "smart" quotes, unquoted paths with spaces.
+
+- In the example, there are three different errors, `--rm` has an em-dash,
+  the volume path isn't quoted and contains a space, and left/right quotes 
+  are used around my_image.
+  - First: `—rm`
+  - Next: `project:/data`
+  - Then: `“my_image”` (with left/right quotes)
+ 
+---
+
+# Q: Why do I get "executable not found"?
+
+- Did you run the intended command?
+  ```no-highlight
+  docker run --rm my_image -it echo hello world
+  ```
+
+- Is docker trying to run a json string?
+
+- Does the file exist... in the path and inside the container?
+
+- If it is a shell script, check the first line 
+  ```no-highlight
+  #!/bin/bash
+  ```
+
+- If it is a binary, there is likely a missing library
+
+???
+
+- The `-it` is not an executable, everything after my_image is a command to run
+
+- If docker is trying to run your "json" CMD/ENTRYPOINT, there's likely a typo
+  or other invalid json causing it to be processed as a string.
+
+- People try to run commands on their laptop inside the container. We have
+  filesystem namespacing, which means containers cannot see the laptop directories
+  (unless you have a volume mount). The path for exec may not have everything
+  an interactive shell in the container has, login scripts aren't run.
+
+- If it's not executable, fix it with a `chmod`, preferably in the same layer where
+  the file was created to reduce layer size.
+
+- Alpine, busybox, and some other images don't ship with bash out of the box.
+
+- Statically compiled go libraries still have some library dependencies without 
+  a few extra flags. If you compile on ubuntu and run on alpine, the musl libc
+  will not work.
+
+---
+
+# Q: What is this TTY error?
+
+```no-highlight
+the input device is not a TTY
+```
+
+- The TTY is a terminal in linux
+
+- `docker run -it`: Interactive terminal
+
+- `docker run -i `: Input but no terminal, piping in a file
+
+- `docker run -t `: Setup terminal but no input, color output in logs
+
+- `docker run    `: No input, no terminal, typically used for scripts/cron/ci-cd
+
+???
+
+- A terminal is more than just a stream of text, lets the cursor move around and
+  supports colors.
+
+- This error is typically seen when you run docker by a script or in some
+  automation tool (Jenkins).
+
+---
+
+# Q: Why is tail broken?
+
+This tail command never shows lines written to the logfile:
+
+```
+$ docker run -d --name test-tail --rm debian tail -f /etc/issue
+*$ docker exec test-tail /bin/sh -c \
+*  'ls -l /etc/issue; \
+*   echo hello container >>/etc/issue; \
+*   ls -l /etc/issue'
+-rw-r--r-- 1 root root 26 Jul 13  2017 /etc/issue
+-rw-r--r-- 1 root root 42 May 14 15:50 /etc/issue
+$ docker logs test-tail
+Debian GNU/Linux 9 \n \l
+
+$
+```
+
+???
+
+- This is a contrived example, /etc/issue is any log file that already
+  exists inside the image to allow the tail command to work.
+
+- Sometimes this is IO buffering. Try using `stdbuf -i0 -o0 -e0 tail x` to
+  run tail without buffering.
+
+---
+
+# Q: Why is tail broken?
+
+This error comes from the docker copy-on-write, note the inode numbers:
+```
+$ docker run -d --name test-tail --rm debian tail -f /etc/issue
+$ docker exec test-tail /bin/sh -c \
+  'ls -il /etc/issue; \
+   echo hello container >>/etc/issue; \
+   ls -il /etc/issue'
+*41813820 -rw-r--r-- 1 root root 26 Jul 13  2017 /etc/issue
+*41031155 -rw-r--r-- 1 root root 42 May 14 15:58 /etc/issue
+$ docker logs test-tail
+Debian GNU/Linux 9 \n \l
+
+$
+```
+
+???
+
+- When the tail command starts, it follows the inode of the file in the image fs
+
+- After the echo command, the CoW happens, the file is copied into the container
+  fs, and the file you see in the container is not the same file being tailed
+
+---
+
+# Q: Why is tail broken?
+
+Fix it by modifying the file before starting the tail command:
+
+```
+$ docker run -d --name test-tail --rm debian /bin/sh -c \
+*  ':>>/etc/issue && exec tail -f /etc/issue'
+```
+
+???
+
+- The `:` command is a "noop"
+
+- The `>>` will then append nothing to the file
+
+- But a timestamp on the file will be updated, forcing a CoW
+
+- I use a shell to join two commands together with `&&`
+
+- And `exec` is used to replace the shell in pid 1 with `tail`
+
+---
+
+# Q: Why is tail broken?
+
+Now adding a line to the file shows in the logs:
+
+```
+$ docker exec test-tail /bin/sh -c \
+  'ls -il /etc/issue; \
+   echo hello container >>/etc/issue; \
+   ls -il /etc/issue'
+41031155 -rw-r--r-- 1 root root 26 Jul 13  2017 /etc/issue
+41031155 -rw-r--r-- 1 root root 42 May 14 16:04 /etc/issue
+$ docker logs test-tail
+Debian GNU/Linux 9 \n \l
+
+*hello container
+```
+
+???
+
+- Now the inode number is unchanged during the exec because the file
+  was already copied on the container startup.
+
+- These same inode issues affect mounting a single file as a volume in
+  containers. Changing the file on either side creates a new inode and file
+  and the changes are only visible from the side that changed.
+
+- To solve this with volumes, mount a directory instead of a single file if
+  you plan on editing that file.
+
+---
+
+template: inverse
+
+# Networking
+
+---
+
+# Q: EXPOSE vs Publishing a port?
+
+- EXPOSE
+
+  - Documentation from the image creator to the person running the image
+
+  - Not needed to publish
+
+  - Not needed for container-to-container communication
+
+- Publish
+
+  - Maps a port on the host to connect to a port in the container.
+
+  - One-way, from host to container, it does not allow containers
+    to access applications running on the host.
+
+???
+
+- Neither of these apply to container-to-container communication.
+
+---
+
+# <span class="bg-white">Q: Networking issues between containers?</span>
+
+- Make sure to listen on 0.0.0.0, not 127.0.0.1
+
+- Use a user generated network
+
+- Connect to the container port, not the host published port
+
+- Use DNS: container id, container name, service name, or network alias
+
+- Check the overlay networking ports on your firewalls
+
+???
+
+- When moving an app from host to container, networking needs to change
+  to use multiple namespaced networks instead of a global host network.
+
+- Overlay ports: 7946/both, 4789/tcp, and protocol 50
+
+---
+
+## Follow-up Q: Do I need to expose the port?
+- Nope, expose is documentation.
+
+## Follow-up Q: Do I need to publish the port?
+- Nope, that only makes the container accessible from outside of docker.
+
+## Follow-up Q: Do I need links?
+- Nope, links are deprecated, use user created networks.
+
+???
+
+- Any container with a common user created network can talk to every port
+  of the other container, no expose, publish, or linking needed.
+
+- Linking is what we had before user generated networks, you still need that
+  if you don't create a network for your container, but it's not recommended.
+
+--
+
+## Follow-up Q: What's a network alias?
+- You can give containers or services additional names on any network.
+
+???
+
+- Aliases are many-to-many. One container can have many of aliases. Many
+  containers can have the same alias (DNSRR).
+
+---
+
+# <span class="bg-white">Q: Why can't my container reach an app on my host using 127.0.0.1?</span>
+
+- Container networking is namespaced.
+
+- By default, each container gets it's own loopback interface (127.0.0.1).
+
+- Solutions:
+  - Bad: Use host networking
+  - Ok: Connect to another interface on the host
+  - Best: Move the host app into a container
+
+---
+
+# Q: Issues accessing published port?
+
+- Make sure the app is listening on that port, and on `0.0.0.0`:
+
+```
+docker run -it --rm --net container:${cid}
+  nicolaka/netshoot netstat -lnt
+```
+
+???
+
+- Loopback doesn't work for published port either.
+
+- There are several network types: host, overlay, bridge, and none. There's
+  also using the network namespace of another container.
+
+--
+
+- Verify the publish command. `-p 8080:80` maps host port 8080 to container
+  port 80.
+
+???
+
+- Docker doesn't control how the app listens, only where the forwarded
+  traffic goes
+
+- Every container can listen internally on the same port without conflict,
+  that's what network namespacing gives you. People often reverse the port
+  order. My way of remembering is you can publish to a specific IP on the
+  host, and if so, that's `host_ip:host_port:container_port`
+
+--
+
+- Avoid IPv6 issues, connect to `127.0.0.1` instead of `localhost`. Do not
+  try to connect to `0.0.0.0`.
+
+???
+
+- IP `0.0.0.0` is only for servers listening, not clients connecting. The
+  web server listens on all network interfaces, but the web browser only
+  connects to a single IP address.
+
+--
+
+- With overlay networking, open 7946/both, 4789/tcp, and protocol 50.
+
+???
+
+- Overlay networking needs ports opened between docker nodes in the swarm.
+  Protocol 50 is not tcp or udp, it's a different protocol, for IPSec only.
+
+--
+
+- <span class="bg-white">
+  Verify the docker host you are using with `echo $DOCKER_HOST`. If this is
+  set, connect to that IP instead.</span>
+
+???
+
+- IP `0.0.0.0` is only for servers listening, not clients connecting. The
+  web server listens on all network interfaces, but the web browser only
+  connects to a single IP address.
+
+---
+
+template: inverse
+
+# Volumes
+
+---
+
+# Q: Build isn't updating a directory?
+
+- Sometimes the image is updated, and a volume is mounted over that directory.
+
+- Named volumes only get initialized on container create when the volume
+  is empty. Host volumes never get initialized by docker.
+
+- Volumes defined in the Dockerfile prevent future changes to that directory.
+
+---
+
+# PSA: Remove VOLUME in Dockerfiles
+
+- Users cannot extend the image with initialized data.
+
+- Anonymous volumes are created that clutter the filesystem.
+
+- Named and host volumes do not require the volume defined in the image.
+
+???
+
+- Anonymous volumes are where data goes to get lost.
+
+--
+
+- Solution: define volumes in the compose file.
+
+---
+
+# <span class="bg-white">Q: How do I handle UID/GID and permission issues with host volumes?</span>
+
+- Option 1: `chmod 777`
+
+- Option 2: Update image user to match host uid/gid
+
+- Option 3: Use named volumes an manage data with containers
+
+- Option 4: Correct permissions with entrypoint
+
+???
+
+- Opt 1 is a cop-out
+
+- Opt 2 is not portable
+
+- Opt 3 works as long as you don't need host volumes
+
+- Opt 4 requires suid command or starting container as root
+
+---
+
+## <span class="bg-white">Q: How do I handle UID/GID and permission issues?</span>
+
+Update image to match host uid/gid:
+
+```
+FROM debian:latest
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID cuser \
+ && useradd -m -u $UID -g $GID -s /bin/bash cuser
+USER cuser
+```
+
+```
+$ docker build \
+  --build-arg UID=$(id -u) --build-arg GID=$(id -g) .
+```
+
+???
+
+- Only need to match uid/gid, username and groupname can be different
+
+- Not portable if UID/GID isn't common across all docker hosts
+
+---
+
+## <span class="bg-white">Q: How do I handle UID/GID and permission issues?</span>
+
+Using named volumes:
+
+```no-highlight
+# Populate named volume
+$ tar -cC source . | docker run --rm -i -v vol:/target \
+    busybox /bin/sh -c "tar -xC /target && chown -R 1000 /target"
+
+# Use or initialize empty volume from image
+$ docker run -d -v vol:/data my_image
+
+# Backup/export named volume
+$ docker run --rm -v vol:/source busybox tar -czC /source . \
+  >backup.tgz
+```
+
+???
+
+- Named volumes get initialized with the directory contents from the image,
+  including uid/gid and permissions of those files/directories
+
+- Managing a named volume is a bit more complicated, you use a utility
+  container to add/remove/backup/etc.
+---
+
+## <span class="bg-white">Q: How do I handle UID/GID and permission issues?</span>
+
+Entrypoint to correct uid/gid:
+
+```
+FROM jenkins/jenkins:lts
+*USER root
+RUN  apt-get update \
+* && wget -O /usr/local/bin/gosu "https://github.com/..." \
+  && chmod +x /usr/local/bin/gosu \
+  && curl -sSL https://get.docker.com/ | sh \
+  && usermod -aG docker jenkins
+*COPY entrypoint.sh /entrypoint.sh
+*ENTRYPOINT ["/entrypoint.sh"]
+```
+
+???
+
+- To use an entrypoint I've:
+  - run the container as root
+  - installed gosu
+  - created the user/group
+  - copied in the entrypoint
+
+- I've removed error handling and cleanup steps to fit on the slide
+
+---
+
+## <span class="bg-white">Q: How do I handle UID/GID and permission issues?</span>
+
+Entrypoint to correct uid/gid:
+
+```no-highlight
+#!/bin/sh
+
+# if image and volume gid do not match, modify container user
+SOCK_DOCKER_GID=$(ls -ng /var/run/docker.sock | cut -f3 -d' ')
+CUR_DOCKER_GID=$(getent group docker | cut -f3 -d: || true)
+if [ "$SOCK_DOCKER_GID" != "$CUR_DOCKER_GID" ]; then
+*  groupmod -g ${SOCK_DOCKER_GID} docker
+fi
+
+# drop access to jenkins user and run jenkins entrypoint
+*exec gosu jenkins /bin/tini -- /usr/local/bin/jenkins.sh "$@"
+```
+
+???
+
+- I've removed error handling and cleanup steps to fit on the slide
+
+- The last line:
+  - `exec` removes the shell from pid 1, replaces with `gosu`
+  - `gosu` drops access from root to jenkins, and does an internal exec to `tini`
+  - `tini` is a small init to reap zombie processes, and launches `jenkins.sh`
+  - `jenkins.sh` runs the app
+
+- Done this way, the entrypoint is transparent to the user and container process,
+  they only notice the file permissions in the container always match where ever
+  they run the container
+
+- A `docker exec` will still run as root, but app will run as jenkins
+
+---
+
+# Q: How to initialize a host volume from image?
+
+- Option 1: Don't. Initialize outside of docker, before starting the container
+
+- Option 2: Copy with an entrypoint from a saved location in the image.
+
+???
+
+- Opt 1: pay attention to uid/gid's.
+
+- Opt 2: if the image is run without a host vol, then use a symlink inside
+  the image from /data to /data-save
+
+--
+
+- Option 3: Define a named volume that's a bind mount.
+
+```no-highlight
+$ docker volume create --driver local \
+  --opt type=none \
+  --opt device=/home/user/test \
+  --opt o=bind \
+  test_vol
+```
+
+???
+
+- Opt 3: Docker will initialize named volumes, but the directory must exist in
+  advance for the bind mount to succeed (unlike host volumes)
+
+---
+
+## Q: How to initialize a host volume from image?
+
+Walk-through of example 3 - Dockerfile:
+
+```no-highlight
+FROM busybox:latest
+RUN adduser --home /home/user --uid 5001 \
+    --disabled-password user
+USER user
+*COPY --chown=user sample-data/ /home/user/data/
+```
+
+???
+
+- We've made a user, and copied in some sample data to the image.
+
+---
+
+## Q: How to initialize a host volume from image?
+
+Walk-through of example 3 - Sample data:
+
+```
+$ ls -al sample-data/
+total 24
+drwxr-xr-x  3 bmitch bmitch 4096 Jan 22  2017 .
+drwxr-xr-x 30 bmitch bmitch 4096 May 14 09:41 ..
+drwxr-xr-x  2 bmitch bmitch 4096 Jan 22  2017 dir
+-rw-r--r--  1 bmitch bmitch   14 Jan 22  2017 file2.txt
+-rw-r--r--  1 bmitch bmitch   12 Jan 22  2017 file.txt
+-rw-r--r--  1 bmitch bmitch  214 Jan 22  2017 tar-file.tgz
+```
+
+???
+
+- This gets loaded into the image
+
+---
+
+## Q: How to initialize a host volume from image?
+
+Walk-through of example 3 - create volume:
+
+```no-highlight
+*$ mkdir test-vol
+
+*$ ls -al test-vol
+total 8
+drwxr-sr-x  2 bmitch bmitch 4096 May 14 09:40 .
+drwxr-xr-x 30 bmitch bmitch 4096 May 14 09:33 ..
+
+*$ docker volume create --driver local --opt type=none \
+* --opt device=$(pwd)/test-vol --opt o=bind test-vol
+test-vol
+```
+
+???
+
+- We have to create the directory on the host first, same for any 
+  bind/nfs/etc mount.
+
+- The volume create could also be done in a compose.yml file. Slightly
+  different syntax.
+
+---
+
+## Q: How to initialize a host volume from image?
+
+Walk-through of example 3 - Run the container:
+
+```no-highlight
+$ docker run -it --rm -v test-vol:/home/user/data test-vol \
+  /bin/sh -c "\
+    echo hello world >/home/user/data/inside-container.txt \
+    && ls -l /home/user/data"
+total 20
+drwxr-xr-x  2 user   user   4096 May 14 13:43 dir
+-rw-r--r--  1 user   user     12 Jan 23  2017 file.txt
+-rw-r--r--  1 user   user     14 Jan 23  2017 file2.txt
+*-rw-r--r--  1 user   user     12 May 14 13:43 inside-container.txt
+-rw-r--r--  1 user   user    214 Jan 23  2017 tar-file.tgz
+```
+
+???
+
+- Run the container, using the named volume mount
+
+- Volume was initialized even though it's a "host" volume
+
+- Created the "inside-container.txt" file by the container
+
+- Note the container owns everything as "user"
+
+---
+
+## Q: How to initialize a host volume from image?
+
+Walk-through of example 3 - Show the local directory from the host:
+
+```
+$ ls -al test-vol/
+total 28
+drwxr-sr-x  3   5001   5001 4096 May 14 09:43 .
+drwxr-xr-x 30 bmitch bmitch 4096 May 14 09:41 ..
+drwxr-xr-x  2   5001   5001 4096 May 14 09:43 dir
+-rw-r--r--  1   5001   5001   14 Jan 22  2017 file2.txt
+-rw-r--r--  1   5001   5001   12 Jan 22  2017 file.txt
+-rw-r--r--  1   5001   5001   12 May 14 09:43 inside-container.txt
+-rw-r--r--  1   5001   5001  214 Jan 22  2017 tar-file.tgz
+```
+
+???
+
+- Note the uid matches the image uid, this doesn't solve the uid mapping issue
+
+- Combine this with previous uid/gid entrypoint fix for best of both
+
+---
+
+layout: false
+class: title
+
+# Thank You
+
+### Slides: https://github.com/sudo-bmitch/dc2018
+
+.left-column[
+.pic-50[![BoxBoat](img/boxboat-logo-color.png)]
+]
+.right-column[.align-right[.no-bullets[
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- StackOverflow: bmitch
+]]]
+
+???
+
+- With that, I challenge everyone to go teach others
+
+- If you don't know all the answers, that's ok, learn it while you're answering
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
