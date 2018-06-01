@@ -1179,7 +1179,7 @@ template: inverse
 - Make sure the app is listening on that port, and on `0.0.0.0`:
 
 ```
-docker run -it --rm --net container:${cid}
+docker run -it --rm --net container:${cid} \
   nicolaka/netshoot netstat -lnt
 ```
 

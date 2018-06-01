@@ -35,12 +35,19 @@ class: title
 
 ???
 
-- This talk is geared towards people that have a working knowledge of docker.
+- This talk is a stripped down version of a longer talk.
 
-- Most of this talk is answering different questions, if you get lost at any
-  point, sit tight for a minute and we'll get to a different question.
+- It's a series of common questions and challenges people have with Docker from
+  the perspective of answering them on SO. 
 
-- I've answered almost 1k questions on the docker tag on SO. But why?
+- There's a mix of common answers we all know here with some more advanced
+  tricks mixed in so hopefully everyone can learn something.
+
+- I'm BMitch, and I'm a solutions architect with BoxBoat who provides
+  consulting services around everything container related.
+
+- I've answered almost 1k questions on the docker tag on SO. People wonder how
+  I learned everything I know about docker, and where I find the time.
 
 ---
 
@@ -48,12 +55,13 @@ class: title
 
 ???
 
-- I wanted to learn Docker inside out. Partially for curiosity, partially
-because I really enjoyed working with it, and mostly because it was my new job.
+- Everyone has their own preferred ways to learn a new skill...
 
 --
 
 - RTFM
+
+- Training 
 
 - Practice
 
@@ -63,20 +71,18 @@ because I really enjoyed working with it, and mostly because it was my new job.
 
 ???
 
-- Docker has some fine docs, and where it's lacking, you can always submit PR's.
+- Some just read the documentation, or take a class, and others want to be more
+  interactive.
 
-- Play With Docker gets you quick practice.
+- For me, I learn the topic best when I teach others that skill. It forces me
+  to understand it enough to answer others questions.
 
-- Drills to me is working through a list of questions, and implies that the
-  answer is already there and you're just trying to remember it.
+- With SO, many times I don't know the answer to a question when I first read
+  it. The path is the reverse that many expect.
 
-- Teaching requires you learn something well enough to explain it to others.
-
-- The last two sum up StackOverflow for me.
-
-- I don't learn docker so I can answer questions
-
-- I answer questions so I can learn docker
+- I don't answer questions to share my knowledge about Docker, I gain knowledge
+  about how Docker works by answering questions. Sharing knowledge is just an
+  awesome side effect.
 
 ---
 
@@ -205,91 +211,6 @@ template: inverse
 
 ---
 
-# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
-
-- RUN, CMD, and ENTRYPOINT can each use either syntax
-
-- The string syntax includes a shell, `/bin/sh -c "${cmd}"` by default.
-
-- The json syntax executes the command directly, without a shell.
-
-???
-
---
-
-.left-column[
-Shell Pros:
-- Expands variables
-- Command chaining (`&&`)
-- I/O redirection
-]
-
---
-
-.right-column[
-Shell Cons:
-- Intercepts signals
-- Extra processing to merge entrypoint with cmd
-]
-
----
-
-# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
-
-String/Shell Syntax:
-
-```
-RUN echo hello world
-ENTRYPOINT /entrypoint.sh
-CMD run a b c
-```
-
---
-
-Json/Exec Syntax:
-
-```
-RUN ["echo", "hello", "world"]
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["run", "a", "b", "c"]
-```
-
-???
-
-- If you have any typos, invalid quotes, missing commas or bracket, docker will
-  treat the bad json as a string to run.
-
----
-
-# <span class="bg-white">Q: What's the difference between the string and json syntax?</span>
-
-What if cmd is a string and you have an entrypoint?
-
-```no-highlight
-/entrypoint.sh /bin/sh -c "args to entrypoint"
-```
-
---
-
-To fix this in the entrypoint:
-
-```bash
-#!/bin/sh
-if [ $# -gt 1 -a "$1" = "/bin/sh" -a "$2" = "-c" ]; then
-  shift 2
-  eval "set -- $1"
-fi
-exec "$@"
-```
-
-???
-
-- The final `exec` is what makes an entrypoint transparent to the command being
-  run. Pid 1 gets replaced by the command and any initialization may be done
-  before the command is executed.
-
----
-
 # Q: Why doesn't build use the cache?
 
 .left-column[
@@ -303,6 +224,12 @@ Cache requires:
 
 - Image was built locally
 ]
+
+???
+
+- Note that the value of external resources can't be tested. If you have a
+  RUN command that curl's an artifact into your image, docker doesn't know
+  when that artifact changes if your command is identical.
 
 --
 
@@ -634,58 +561,9 @@ template: inverse
 
 ---
 
-# Q: What is this TTY error?
-
-```no-highlight
-the input device is not a TTY
-```
-
-- The TTY is a terminal in linux
-
-- `docker run -it`: Interactive terminal
-
-- `docker run -i `: Input but no terminal, piping in a file
-
-- `docker run -t `: Setup terminal but no input, color output in logs
-
-- `docker run    `: No input, no terminal, typically used for scripts/cron/ci-cd
-
-???
-
-- A terminal is more than just a stream of text, lets the cursor move around and
-  supports colors.
-
-- This error is typically seen when you run docker by a script or in some
-  automation tool (Jenkins).
-
----
-
 template: inverse
 
 # Networking
-
----
-
-# Q: EXPOSE vs Publishing a port?
-
-- EXPOSE
-
-  - Documentation from the image creator to the person running the image
-
-  - Not needed to publish
-
-  - Not needed for container-to-container communication
-
-- Publish
-
-  - Maps a port on the host to connect to a port in the container.
-
-  - One-way, from host to container, it does not allow containers
-    to access applications running on the host.
-
-???
-
-- Neither of these apply to container-to-container communication.
 
 ---
 
@@ -726,16 +604,6 @@ template: inverse
 
 - Linking is what we had before user generated networks, you still need that
   if you don't create a network for your container, but it's not recommended.
-
---
-
-## Follow-up Q: What's a network alias?
-- You can give containers or services additional names on any network.
-
-???
-
-- Aliases are many-to-many. One container can have many of aliases. Many
-  containers can have the same alias (DNSRR).
 
 ---
 
@@ -778,7 +646,7 @@ template: inverse
 ## Follow-up Q: How to check if the app is listening on 0.0.0.0?
 
 ```
-docker run -it --rm --net container:${cid}
+docker run -it --rm --net container:${cid} \
   nicolaka/netshoot netstat -lnt
 ```
 
@@ -836,9 +704,13 @@ Typically caused by a volume:
 
 ???
 
+- VOLUME in the Dockerfile came from a time when we had data containers, and
+  mounted volumes from other containers. All of that is deprecated, and there's
+  no need to include it in your image anymore.
+
 - Adding initial data for an image is a common extension that volumes block
 
-- Anonymous volumes are where data goes to get lost
+- Anonymous volumes are where useless data goes fill your disks up
 
 --
 
@@ -941,6 +813,8 @@ fi
 ```
 
 ???
+
+- TIME CHECK
 
 - I've removed error handling and cleanup steps to fit on the slide
 
@@ -1130,6 +1004,11 @@ class: title
 - With that, I challenge everyone to go teach others
 
 - If you don't know all the answers, that's ok, learn it while you're answering
+
+- All the slides, along with the much longer talk are up on github.
+
+- If you have questions, look me up in a hallway track, "at" me on twitter,
+  open an issue on this github repo.
 
     </textarea>
     <!--
