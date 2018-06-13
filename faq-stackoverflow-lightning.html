@@ -531,10 +531,12 @@ template: inverse
 
 - Does the file exist... in the path and inside the container?
 
-- If it is a shell script, check the first line 
+- If it is a shell script, check the first line
   ```no-highlight
   #!/bin/bash
   ```
+
+- Check for windows linefeeds on linux shell scripts
 
 - If it is a binary, there is likely a missing library
 
@@ -991,7 +993,7 @@ class: title
 ### Slides: https://github.com/sudo-bmitch/dc2018
 
 .left-column[
-.pic-50[![BoxBoat](img/boxboat-logo-color.png)]
+![QR](img/github-qr.png)
 ]
 .right-column[.align-right[.no-bullets[
 - Brandon Mitchell
