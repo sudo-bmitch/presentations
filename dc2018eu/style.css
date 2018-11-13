@@ -1,0 +1,197 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto);
+@import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
+body {
+  font-family: 'Helvetica', sans-serif;
+}
+h1, h2, h3 {
+  font-weight: normal;
+}
+code {
+  font-family: 'Roboto Mono', monospace;
+}
+.remark-slide-content {
+  font-size: 25px; 
+  background-image: url('img/bg-content.png');
+  background-size: contain; 
+}
+.remark-slide-content h1 {
+  font-family: 'Impact', serif;
+  font-size: 45px; 
+  color: #0075bc;
+}
+.remark-slide-content h2 {
+  font-family: 'Helvetica', sans-serif;
+  font-size: 35px; 
+  color: #949494;
+}
+.remark-slide-content h3 {
+  font-family: 'Helvetica', sans-serif;
+  font-size: 25px; 
+  color: #949494;
+}
+.remark-slide-content .remark-code {
+  font-size: 25px; 
+}
+.remark-slide-number {
+  left: 15px;
+  bottom: 8px;
+  right: auto;
+}
+
+span.bg-white {
+  background-color: #fff;
+}
+
+img {
+  max-width: 95%;
+}
+li p {
+  line-height: 1.25em; 
+}
+
+.remark-code {
+  border-radius: 5px;
+  display: block;
+  padding: .5em;
+  overflow-x: auto;
+  background: #222;
+  color: #ddd;
+}
+.remark-inline-code {
+  background: #ddd;
+  color: #000;
+  padding: .2em;
+}
+.remark-code-line-highlighted     {
+  color: #eef;
+  background-color: #336;
+}
+.remark-slide-content .small {
+  font-size: 18px;
+}
+.small .remark-code {
+  font-size: 16px; 
+}
+
+.title {
+  vertical-align: middle;
+  background-image: url('img/bg-title.png');
+  text-align: right;
+}
+.title .content {
+  width: 70%;
+  float: right;
+  color: #949494;
+}
+.title h1 {
+  font-size: 60px; 
+}
+.title h2 {
+  font-size: 50px; 
+}
+.title h3 {
+  font-size: 40px; 
+}
+
+.pic {
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-80 img {
+  max-width: 80%; 
+  max-height: 75vh; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-50 img {
+  max-width: 50%; 
+  max-height: 75vh; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-30 img {
+  max-width: 30%; 
+  max-height: 30vh; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-circle-50 img {
+  max-width: 50%; 
+  vertical-align: middle;
+  text-align: center;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+  border-radius: 50%;
+}
+.pic-circle-70 img {
+  max-width: 70%; 
+  vertical-align: middle;
+  text-align: center;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+  border-radius: 50%;
+}
+
+.impact {
+  background-image: url('img/bg-title.png');
+}
+.impact .content {
+  width: 75%;
+  float: right;
+  color: #949494;
+}
+
+.inverse {
+  background: #333;
+  color: #eee;
+  text-shadow: 0 0 20px #222;
+}
+.inverse h1, .inverse h2 {
+  color: #eee;
+  line-height: 1.1em;
+  background-color: #333;
+}
+
+/* Two-column layout */
+.left-column {
+  width: 48%;
+  float: left;
+}
+.right-column {
+  width: 48%;
+  float: right;
+}
+.no-column {
+  clear: both;
+}
+
+.align-left {
+  text-align: left;
+}
+.align-center {
+  text-align: center;
+}
+.align-right {
+  text-align: right;
+}
+
+.v-align-top {
+  vertical-align: top;
+}
+.v-align-mid {
+  display: inline-block;
+  vertical-align: middle;
+}
+.v-align-bottom {
+  vertical-align: bottom;
+}
+
+.no-bullets li {
+  list-style-type: none;
+}
+
+

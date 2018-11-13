@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tips and Tricks From A Docker Captain - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+name: impact
+layout: true
+class: center, middle, impact
+---
+name: centered
+layout: true
+class: center, middle
+---
+layout: false
+class: title
+
+.content[
+# Tips and Tricks<br>From A Docker Captain
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.v-align-mid[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+---
+
+```no-highlight
+$ whoami
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+- BoxBoat is a Docker Business Partner that provides consulting services
+  around containers, HQ in the US with most clients there.
+- Docker Captains are the technical experts that also love spreading that
+  knowledge.
+- I joined the Captains program after answering way too many StackOverflow
+  questions.
+
+---
+
+template: inverse
+
+# Who is a Developer?
+
+???
+
+- Show of hands... I'm feeling a little outnumbered.
+- You're in the right place... but I snuck in here from the Ops side.
+- Job of a good DevOps is to automate themselves out of a job, my goal today
+  is to automate myself out of several hundred jobs simultaneously.
+- (Don't tell my boss.)
+
+---
+
+template: impact
+
+.content[
+# Sysadmin 101 - Full Harddrive
+]
+
+---
+
+# Prune
+
+```no-highlight
+*$ docker system prune
+WARNING! This will remove:
+        - all stopped containers
+        - all networks not used by at least one container
+        - all dangling images
+        - all build cache
+```
+???
+
+- Docker introduced this a while back, and it's the first step
+- Some run this and complain that their drives are still full
+
+--
+What this doesn't clean by default:
+- Running containers (and their logs)
+- Tagged images
+- Volumes
+
+---
+class: small
+
+# Prune
+
+```no-highlight
+*$ docker container prune
+WARNING! This will remove all stopped containers.
+```
+
+--
+
+```no-highlight
+*$ docker image prune
+WARNING! This will remove all dangling images.
+```
+
+--
+
+```no-highlight
+*$ docker volume prune
+WARNING! This will remove all local volumes not used by at
+least one container.
+```
+
+--
+
+```no-highlight
+*$ docker network prune
+WARNING! This will remove all networks not used by at least
+one container.
+```
+
+???
+
+- You prune individual objects
+- Each of these commands can be forced to skip the prompt for scripting/crontab
+- Each of these commands accepts filters to prune just a subset
+- Image prune accepts a `-a` to prune the unused tagged images
+
+---
+
+# Prune
+
+```no-highlight
+$ docker run -d --restart=unless-stopped --name cleanup \
+    -v /var/run/docker.sock:/var/run/docker.sock
+    docker /bin/sh -c \
+    "while true; do docker system prune -f; sleep 1h; done"
+```
+
+???
+
+- We now know how to do the job of an Ops, lets automate that job away
+- Be careful since this removes stopped containers and untagged images
+  - I've had it delete DTR containers that didn't restart automatically
+  - Untagged images includes your build cache
+
+--
+
+```no-highlight
+$ docker service create --mode global --name cleanup \
+    --mount type=bind,src=/var/run/docker.sock,\
+            dst=/var/run/docker.sock \
+    docker /bin/sh -c \
+    "while true; do docker system prune -f; sleep 1h; done"
+```
+
+???
+
+- We can do the same with a swarm service scheduled on every node in the
+  cluster.
+- Note the mount flag here got split over two lines, that's one long option
+
+---
+
+# Clean Your Logs
+
+- Docker logs to per container json files by default, without any limits
+- Rotating yourself could break that json formatting
+- Luckily "without any limits" is just the default... we can change that
+
+???
+
+- Anyone here ever write a multi-threaded app and forget to lock the shared
+  data before you modify it?
+
+---
+
+# Clean Your Logs
+
+```no-highlight
+$ docker container run \
+*   --log-opt max-size=10m --log-opt max-file=3 \
+    ...
+```
+
+???
+
+- Max size is fairly self explanatory, 10m = 10 megs
+- Max file is the number of log files docker will keep, when the limit is
+  reached per log, docker starts a new empty log, and if there are now more
+  than 3 files, the oldest logs are deleted
+- This means you can have between 20m-30m of logs with these settings
+- You can adjust the config when you run a container... but we don't
+  run containers like this when deploying apps, there's a compose file...
+
+--
+
+```no-highlight
+$ cat docker-compose.yml
+version: '3'
+services:
+  app:
+    image: your_app
+*   logging:
+*     options:
+*       max-size: "10m"
+*       max-file: "3"
+```
+
+???
+
+- That's a lot of typing to do per service the compose file. What if we had
+  a dozen services?
+
+---
+
+# Clean Your Logs
+
+```no-highlight
+version: '3.4'
+*x-default-opts: &default-opts
+  logging:
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  app_a:
+*   <<: *default-opts
+    image: your_app_a
+  app_b:
+*   <<: *default-opts
+    image: your_app_b
+```
+
+???
+
+- Docker added extension fields in 3.4. That's the `x-*` at the top level
+- Yaml always had an anchor/alias syntax
+  - `&default-opts` is an anchor
+  - `*default-opts` is an alias
+  - `<<` merges in a set of keys from the alias
+- Hopefully many of you are thinking about how to use this for more than
+  just logs, repetition inside docker-compose.yml files happens a lot, and
+  we have the tools to make them DRY
+- The other reason I hope your thinking about how to use this in different
+  ways is because we don't need this for logging...
+  we can change docker's default behavior...
+
+---
+
+# Clean Your Logs
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "log-opts": {"max-size": "10m", "max-file": "3"}
+}
+$ systemctl reload docker
+```
+
+???
+
+- Set the new default for every container run on this host going forward
+- Does not effect already running containers
+- Can be overridden per container
+
+---
+
+.center[.pic-80[![D4M Advanced Prefs](img/d4m-prefs-daemon-adv.png)]]
+
+---
+
+.center[.pic-80[![D4W Advanced Prefs](img/d4w-settings-daemon-advanced.png)]]
+
+---
+
+template: impact
+
+.content[
+# Networking
+]
+
+???
+
+- This isn't the hallway track
+
+---
+
+# Subnet Collisions
+
+- Docker networks sometimes conflict with other networks
+
+???
+
+- This happens especially when our laptops are moving, connecting
+  to VPN's, or docker isn't initially connected to the rest of the network
+
+--
+- Default address poll added in 18.06
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "default-address-pools": [
+    {"base": "10.20.0.0/16", "size": 24},
+    {"base": "10.40.0.0/16", "size": 24}
+  ],
+  "bip": "10.15.0.0/24"
+}
+```
+
+???
+- The default address pool controls new networks you create dynamically
+- The "bip" controls the default docker0 bridge
+- This is also being added to `docker swarm` commands for overlay networks...
+
+---
+
+# Subnet Collisions
+
+
+```no-highlight
+$ docker swarm init --help
+...
+  --default-addr-pool ipNetSlice
+  --default-addr-pool-mask-length uint32
+```
+???
+- This was just added in 18.09
+- Swarm mode has these options when you init the swarm
+- I have an open PR to get these modifiable with `docker swarm update`
+
+--
+
+```no-highlight
+$ docker swarm init \
+  --default-addr-pool 10.20.0.0/16 \
+  --default-addr-pool 10.40.0.0/16 \
+  --default-addr-pool-mask-length 24
+```
+???
+- To set more than one pool, pass the flag multiple times
+
+---
+
+# Network Debugging
+
+- Networks in docker come in a few flavors: bridge, overlay, host, none
+- You can also configure the network namespace to be another container
+
+???
+
+- This next tip is an old one but well worth repeating
+- K8s people know this as pod networking
+
+--
+
+```no-highlight
+$ docker run --name test-net -p 9080:80 -d nginx
+
+*$ docker run -it --rm --net container:test-net \
+    nicolaka/netshoot ss -lnt
+State     Recv-Q Send-Q Local  Address:Port    Peer Address:Port
+LISTEN    0      128           *:80            *:*
+```
+
+???
+
+- Lets start an nginx container and debug it
+- Nicolaka is a docker employee that put together this networking
+  troubleshooter container, it contains loads of common tools
+- The `ss` command here is the replacement for `netstat`, we're showing that
+  inside the network namespace for the nginx container, there is something
+  listening on port 80
+
+---
+
+# Network Debugging
+
+```no-highlight
+$ docker run -it --rm --net container:test-net \
+*   nicolaka/netshoot tcpdump -n port 80
+tcpdump: verbose output suppressed, use -v or -vv for full
+protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size
+262144 bytes
+```
+
+???
+
+- We can do more than just `ss`, here's an example of tcpdump
+
+--
+
+```no-highlight
+$ curl localhost:9080
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+```
+
+???
+
+- If we curl the port from another shell on the host, we should
+  see traffic in that container...
+
+---
+
+# Network Debugging
+
+```no-highlight
+$ docker run -it --rm --net container:test-net \
+    nicolaka/netshoot tcpdump -n port 80
+14:08:58.878822 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [S],...
+14:08:58.878848 IP 172.17.0.2.80 > 172.17.0.1.55194: Flags [S.],..
+14:08:58.878872 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [.],...
+14:08:58.879089 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [P.],..
+14:08:58.879110 IP 172.17.0.2.80 > 172.17.0.1.55194: Flags [.],...
+14:08:58.879208 IP 172.17.0.2.80 > 172.17.0.1.55194: Flags [P.],..
+14:08:58.879238 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [.],...
+14:08:58.879267 IP 172.17.0.2.80 > 172.17.0.1.55194: Flags [P.],..
+14:08:58.879285 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [.],...
+14:08:58.879695 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [F.],..
+14:08:58.879739 IP 172.17.0.2.80 > 172.17.0.1.55194: Flags [F.],..
+14:08:58.879776 IP 172.17.0.1.55194 > 172.17.0.2.80: Flags [.],...
+```
+
+???
+
+- And looking back at tcpdump, we see the traffic hitting the container
+- We did not need to install any debugging code inside the nginx container
+- We can also use this to test connections between containers over docker
+  networking, e.g. ping, curl, etc, as one container talking to another, to
+  know if the issue is our application or our network configuration
+
+---
+
+template: impact
+
+.content[
+# Filesystems and Volumes
+]
+---
+
+# Understanding Layers
+
+```no-highlight
+*$ docker image history localhost:5000/jenkins-docker:latest
+IMAGE        CREATED       CREATED BY               SIZE   COMMENT
+6ca185e69f2e 292 years ago LABEL org.label-schema     0B  buildkit
+<missing>    292 years ago HEALTHCHECK &{["CMD-SH     0B  buildkit
+<missing>    292 years ago ENTRYPOINT ["/entrypoi     0B  buildkit
+<missing>    3 weeks ago   COPY entrypoint.sh /en 1.08kB  buildkit
+<missing>    3 weeks ago   RUN |2 GOSU_VERSION=1.  203MB  buildkit
+<missing>    3 weeks ago   RUN /bin/sh -c apt-get 83.6MB  buildkit
+<missing>    292 years ago USER root                  0B  buildkit
+<missing>    6 weeks ago   /bin/sh -c #(nop) COPY 6.11kB
+<missing>    6 weeks ago   /bin/sh -c #(nop) USER     0B
+<missing>    6 weeks ago   /bin/sh -c #(nop) EXPO     0B
+<missing>    7 weeks ago   /bin/sh -c apt-get upd 2.21MB
+<missing>    7 weeks ago   /bin/sh -c #(nop) ADD   101MB
+```
+???
+- You can view layers with the `docker image history` command which is
+  almost as old as docker itself
+- In there you can see each command run, each bit of metadata set
+- You get a disk space per layer to see which commands need to be optimized
+- And you can even see some artifacts of buildkit that I was testing here
+
+---
+
+# Understanding Layers
+
+```no-highlight
+$ docker image inspect localhost:5000/jenkins-docker:latest \
+    --format '{{json .RootFS.Layers}}' | jq .
+[
+* "sha256:b28ef0b6fef80faa25436bec0a1375214d9a23a91e9b75975bb...",
+  ...
+  "sha256:08794ff8753b0fbca869a7ece2dff463cdb7cffd5d7ce792ec0...",
+  "sha256:37986c5c5dff18257b9a12a19801828a80aea036992b34d35a3...",
+* "sha256:34bb0412a3f6c0f3684e05fcd0a301dc999510511c3206d8cd3...",
+  "sha256:696245ae585527c34e2cbc0d01d333aa104693e12e0b79cf193...",
+  "sha256:91b63ceb91a75edb481c1ef8b005f9a55aa39d57ac6cc6ef490...",
+  "sha256:afddea070d31e748730901215d11b546f4f212114e38e685465...",
+  "sha256:0c05256b3bb44190557669126bf69897c7faf7628ff1ed2e2d4...",
+  "sha256:0c05256b3bb44190557669126bf69897c7faf7628ff1ed2e2d4..."
+]
+```
+???
+- You can also see these layers when you inspect an image, here I'm
+  looking at just the ".RootFS.Layers" section of the inspect
+- These are the layers of an image that I've built myself.
+- There's a lot more output than this, but I've truncated and highlighted
+  two lines, b28, and 34b.
+- What happens if we look at the layers of my parent image, 
+  "jenkins/jenkins:lts"...
+
+---
+
+# Understanding Layers
+
+```no-highlight
+$ docker image inspect jenkins/jenkins:lts \
+    --format '{{json .RootFS.Layers}}' | jq .
+[
+* "sha256:b28ef0b6fef80faa25436bec0a1375214d9a23a91e9b75975bb...",
+  ...
+  "sha256:08794ff8753b0fbca869a7ece2dff463cdb7cffd5d7ce792ec0...",
+  "sha256:37986c5c5dff18257b9a12a19801828a80aea036992b34d35a3...",
+* "sha256:34bb0412a3f6c0f3684e05fcd0a301dc999510511c3206d8cd3..."
+]
+```
+???
+- We see the same b28 and 34b layers in the "jenkins/jenkins:lts" image.
+- These images aren't a copy of each other, they point to the same bytes
+  on the filesystem. Docker is storing them by their unique hash.
+- But what do these layers contain, how can we see the files inside?...
+
+---
+
+# Understanding Layers
+
+```no-highlight
+*$ DOCKER_BUILDKIT=0 docker build --no-cache --rm=false .
+Sending build context to Docker daemon  146.4kB
+...
+Step 5/17 : RUN apt-get update  && DEBIAN_FRONTEND=noninteracti...
+* ---> Running in 1fc215ebb603
+...
+ ---> d6dff86e8b89
+Step 9/17 : RUN curl -fsSL https://download.docker.com/linux/de...
+* ---> Running in a7a3a942a617
+...
+ ---> a241c22525d8
+...
+Successfully built b01e4c46a2bf
+```
+???
+- Normally when you build, you let docker remove the intermediate containers
+- We can build with the `--rm=false` option and keep the containers around
+- The `Running in` lines show each of the container id's
+- Usually you would see a "removing intermediate container" at the end of each
+  step, but that's what we turned off
+- So what do a bunch of exited containers get us?...
+
+---
+
+# Understanding Layers
+
+```no-highlight
+*$ docker container diff 1fc215ebb603
+C /etc
+A /etc/python3.5
+A /etc/python3.5/sitecustomize.py
+...
+C /usr/bin
+A /usr/bin/pygettext3
+A /usr/bin/helpztags
+A /usr/bin/python3
+A /usr/bin/rvim
+A /usr/bin/view
+A /usr/bin/python3.5
+...
+```
+
+???
+
+- We can use `docker diff` to show exactly what has changed inside of a
+  container, and these changes are what docker packages into the image
+  layer.
+- Take note of the first character.
+  - A: Add (more bytes)
+  - C: Change (wasted bytes)
+  - D: Delete (saves nothing, only a filesystem marker in the next layer)
+
+---
+
+# Understanding Layers
+
+- If you create a temporary file in a step, delete it in that same step
+- Look for unexpected changes that trigger a copy-on-write, e.g. timestamps
+- Do your dirty work in early stages of a multi-stage build
+- Merge your `COPY` and `RUN` commands together
+
+???
+- `chmod` and `chown` used to trigger CoW even without permission/owner changes
+  - Docker changed that in 18.06 for overlay2
+- For diff, Docker looks at uid, gid, rdev (special file, device with mknod)
+  - And if not a directory, it also checks: mtime and size
+- Multi-stage lets you be very cache wasteful during the compile of your code
+  while still shipping only the resulting binary in the final image
+  - A messy cache full of compilers and source is useful to speed up the next build
+- Last bullet needs a plant from the audience saying:
+  "Wait, what, how? You can't do that!"
+
+---
+
+# Merge COPY and RUN
+
+```no-highlight
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get clean
+```
+???
+- Merging multiple RUN commands is easy...
+
+--
+```no-highlight
+RUN apt-get update \
+ && apt-get install -y curl \
+ && apt-get clean
+```
+???
+- Just escape the line feed and join the commands with `&&`
+
+---
+
+# Merge COPY and RUN
+
+```no-highlight
+COPY module_a /code/module_a/
+COPY module_b /code/module_b/
+```
+???
+- And merging multiple copy commands is also easy...
+
+--
+```no-highlight
+COPY code /code
+```
+???
+- Rearrange your build context so you can do one copy with lots of sub-dirs
+- But how do we merge a COPY and RUN
+
+---
+
+# Merge COPY and RUN
+
+```no-highlight
+COPY code /code
+RUN  extract-code.sh \
+ &&  compile-binaries.sh \
+ &&  cleanup-code.sh
+```
+???
+- But how do we merge this?
+
+---
+
+# Merge COPY and RUN with Just a RUN
+
+```no-highlight
+RUN  apt-get update \
+  && apt-get install -y curl build-essential \
+* && curl http://company-repo/latest/code.tgz >code.tgz \
+  && extract-code.sh \
+  && compile-binaries.sh \
+  && cleanup-code.sh \
+  && apt-get remove -y curl build-essential \
+  && apt-get clean
+```
+???
+- The old-school way was to put the code on an external server, and do everything
+  in a single layer, including the curl, and cleaning up the compiler
+- A single code change required reinstalling the compiler every time
+- Docker also didn't see changes to external files, so you'd have to build
+  without a cache or inject a changing ARG to break the cache
+
+---
+
+# Merge COPY and RUN with Multi-Stage Builds
+
+```no-highlight
+*FROM openjdk:jdk as build
+RUN  apt-get update \
+ &&  apt-get install -y maven
+COPY code /code
+RUN  mvn build
+
+*FROM openjdk:jre as final
+*COPY --from build /code/app.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+???
+- Multi-stage gave us the tools to not need to worry about merging COPY and RUN
+- Multi-stage is also much more efficient about reusing build layers, no need
+  to cleanup in the build stage since we only ship the final stage
+- Means the build stage can skip to the COPY and mvn step, without reinstalling
+  maven on every build
+- And it means our final image only ships with a JRE and jar file,
+  not a JDK or source
+- So multi-stage is awesome! ...
+
+---
+
+template: inverse
+
+.title-content[
+# "Hold my beer."<br><br> --BuildKit
+]
+---
+
+# Merge COPY and RUN with BuildKit
+
+```no-highlight
+*# syntax = tonistiigi/dockerfile:runmount20180607
+FROM openjdk:jdk as build
+RUN  apt-get update \
+ &&  apt-get install -y maven
+*RUN  --mount=target=/code,type=bind,source=code \
+*    --mount=target=/root/.m2,type=cache \
+*    mvn build
+FROM openjdk:jre as final
+COPY --from build /output/app.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+???
+- What's going on here? Weird comment, `--mount`, and where's COPY?
+- The first comment isn't a comment, it's a parser directive
+  - The parser for this dockerfile is an image that we downloaded
+  - If we build this on a buildkit host that didn't have the right parser,
+    it would be downloaded without having to upgrade the docker engine
+- The `--mount` syntax
+  - Comes from the `dockefile:runmount` image
+  - There are two possible types, bind and cache
+  - Bind is a mount to the build context, it will be read-only
+  - The cache is a effectively a named volume managed by buildkit
+- Advantages: bind mount avoids wait to copy files, and the m2 cache avoids
+  downloading maven dependencies every time we change our code
+
+---
+
+# Merge COPY and RUN with BuildKit
+
+```no-highlight
+$ export DOCKER_BUILDKIT=1
+$ docker build -t your_image .
+```
+???
+- To run BuildKit, you just export an environment variable and build like normal
+
+--
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{ "features": {"buildkit": true} }
+```
+
+???
+- Or to make buildkit the new default, you can configure the daemon.json with
+  the above "features" setting
+
+---
+
+# TODO: Understanding inodes
+
+- Bind mounts: Impact on single file volume mount
+- Union filesystem: Files on image vs container layer
+
+---
+
+template: impact
+
+.content[
+# Volumes with the Developer Workflow
+]
+???
+
+- I had a second talk submitted that didn't make the cut that was all about
+  volumes. So with what time we have left, lets see how we can make developer's
+  lives easier with volumes.
+
+---
+
+# Local Volume Driver
+
+.center[.pic-80[![Docker Volume Create Example](img/docker-vol-create-ex.png)]]
+
+???
+
+- From Docker's documentation, we have steps to mount things like btrfs and
+  nfs with the local volume driver
+- Nice thing is that this works out of the box, no 3rd party driver install
+  required
+- Looking at the syntax, it's very similar to the mount command
+  - The mount command is mostly a frontend to the mount syscall
+  - The local volume driver is also mostly a pass through to the mount syscall
+  - With nfs, you typically pass a device "addr:/path" to the command, vs the
+    syscall which passes a device ":/path" with an option "addr"
+- To run a mount syscall, we need a type, source device, options, and target
+- With NFS, we can create a volume with better options than just this example...
+
+---
+
+# NFS Mounts
+
+```no-highlight
+$ docker volume create \
+    --driver local \
+    --opt type=nfs \
+    --opt o=nfsvers=4,addr=nfs.example.com,rw \
+    --opt device=:/path/to/dir \
+    foo
+```
+
+???
+- The local driver is the default, I'm being explicit here
+- Type is "nfs", this can be any fs type supported by the host, ext4, ntfs, etc
+- Option "o" are additional options, comma separated, that you'd pass to mount
+  - Addr gets DNS resolved when type is NFS by Docker
+  - RW is read-write
+  - NFS ver is set to 4 here, instead of using the type "nfs4" to get DNS on ADDR
+  - If you do not set the NFS version, Linux goes through the different versions
+- Device in NFS is just the remote path, with a preceding colon
+  - That's what the mount syscall looks like after the NFS mount command moves
+    the IP to the addr option
+  - Note: the remote directory does need to exist!
+- But how do we do this in compose files?...
+
+---
+
+# NFS Mounts
+
+```no-highlight
+version: '3'
+volumes:
+  nfs-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: nfsvers=4,addr=nfs.example.com,rw
+      device: ":/path/to/dir"
+services:
+  app:
+    volumes:
+      - nfs-data:/data
+...
+```
+
+???
+- Everything we did in a volume create has a mapping to the compose file
+- This is all you need to run an HA service in swarm with persistent data
+  if you have HA storage available over NFS
+- What about when we want to run a one-off container? ...
+
+---
+
+# NFS Mounts
+
+```no-highlight
+$ docker container run -it --rm \
+  --mount \
+      type=volume,\
+      dst=/container/path,\
+      volume-driver=local,\
+      volume-opt=type=nfs,\
+    \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
+      volume-opt=device=:/host/path \
+  foo
+```
+
+???
+- For Docker Run, we have the `--mount` syntax, similar to `-v` 
+- It is more explicit / verbose
+- Allows different volume driver options for different mounts in the same
+  container
+- All of this is one long argument, the parameter string is comma separated,
+  I've only broken it across lines for the slides
+- The mount syntax also identical to the service create syntax which doesn't
+  support `-v`...
+
+---
+
+# NFS Mounts
+
+```no-highlight
+$ docker service create \
+  --mount \
+      type=volume,\
+      dst=/container/path,\
+      src=foo-nfs-data,\
+      volume-driver=local,\
+      volume-opt=type=nfs,\
+    \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
+      volume-opt=device=:/host/path \
+  foo
+```
+
+???
+- Lets look at these parameters...
+- Type can be volume, bind, or tmpfs
+- DST or Target is where to mount the directory inside the container
+- SRC or Source is the volume name for named volumes,
+  host dir for bind, or empty for anonymous volume
+- With volume type, driver is any volume driver you want
+- And then we have type, device, and "o" as before
+- Note that `--mount` is comma separated as is opt `o`, so we need to quote that
+  entire section of the command, and escape those quotes from the bash shell
+
+---
+
+# TODO: Overlay Named Volume
+
+---
+
+template: inverse
+
+# That's nice, but I just use:<br> $(pwd)/data:/data<br><br>
+
+???
+
+- For developers on their laptops, you're not doing NFS mounts
+- Let me stop you there, don't run that...
+
+---
+
+template: inverse
+
+# That's nice, but I just use:<br> ~~$(pwd)/data:/data~~ <br> "$(pwd)/data:/data"
+
+???
+- If you use `$(pwd)` put it in quotes, otherwise a space in the path will
+  give you weird errors
+- This is a host mount, and there's a downside to the host mount...
+
+---
+
+# Host Mount
+
+- Bind mount of a directory on the host into the container
+- Does not initialize the directory to the image contents
+- UID/GID permission issues
+- Data is very easy to access, making IDE integration easier
+
+???
+- If we switch to the named volume, all of these reverse
+  - Data gets initialized
+  - That initialization includes UID/GID from image, avoiding permission issues
+  - But data is off in /var/lib/docker/volumes/...
+- How do we get the best of both worlds?
+- A host mount is just a wrapper on a bind mount, what if we made a named
+  volume using that local volume driver that did a bind mount?
+
+---
+
+# Named Bind Mount
+
+```no-highlight
+$ docker volume create \
+    --driver local \
+    --opt type=none \
+    --opt device=/home/user/test \
+    --opt o=bind \
+    test_vol
+```
+
+---
+
+# Named Bind Mount
+
+```no-highlight
+$ docker container run -it --rm \
+  --mount \
+      type=volume,\
+      dst=/container/path,\
+      volume-driver=local,\
+      volume-opt=type=none,\
+      volume-opt=o=bind,\
+      volume-opt=device=/home/user/test \
+  foo
+```
+
+---
+
+# Named Bind Mount
+
+```no-highlight
+version: '3'
+volumes:
+  bind-test:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/user/test
+...
+```
+
+---
+
+# Named Bind Mount
+
+- Initialises empty directory to the image content
+- Initializing includes the file UID/GID and permissions
+- Able to access files locally
+
+???
+
+- Best of named volume and host volume together for data initialization
+
+---
+
+template: inverse
+
+# But I'm mapping code<br> from my host into my container
+???
+- If we already have a directory of files, the UID/GID will not
+  match what we have on our host, how can we fix that?...
+
+---
+
+# Fixing UID/GID
+
+```no-highlight
+FROM openjdk:jdk as build
+*RUN  useradd -m app
+COPY code /code
+RUN  --mount=target=/home/app/.m2,type=cache \
+     mvn build
+CMD ["java", "-jar", "/output/app.jar"]
+*USER app
+```
+
+???
+
+- Going back to the Java example, lets see how the UID/GID issues impact us
+- Lets make our container more secure by configuring it to run as a non-root user
+
+---
+
+# Fixing UID/GID
+
+```
+version: '3.7'
+volumes:
+  m2:
+services:
+  app:
+    build:
+      context: .
+      target: build
+    image: registry:5000/app/app:dev
+*   command: "/bin/sh -c 'mvn build && java -jar /output/app.jar'"
+    volumes:
+*   - ./code:/code
+*   - m2:/home/app/.m2
+```
+???
+- And lets make a developer compose file that mounts /code into the container
+  with a command that rebuilds the jar every time we restart.
+
+---
+
+# Fixing UID/GID
+
+```no-highlight
+Error accessing /code: permission denied
+```
+???
+- When we try to run that, we often find that the UID inside the container doesn't
+  match those on our laptop
+
+---
+
+# Fixing UID/GID
+
+Possible solutions:
+- Run everything as root
+- Change permissions to 777
+- Adjust each developers uid/gid to match image
+- Adjust image uid/gid to match developers
+- Change the container uid/gid from `run` or `compose`
+
+???
+- Running everything as root allows a container escape to be root on the host,
+  and we also get files on our host owned by root that we can't edit outside of
+  the container.
+- Changing permissions to 777 allows anyone on the host to modify files, and 
+  files are owned by a different uid that we cannot modify.
+- Adjusting each developer's uid/gid is a pain, we could have multiple
+  conflicting images, and users may need to access a shared system with
+  individual UID's.
+- Adjusting each image would result in images that are specific to each developer
+- Changing the uid/gid of the container user doesn't change the file owners in the image
+
+--
+- "... or we could use a shell script" - Some Ops Guy
+
+---
+
+template: inverse
+
+# Disclaimer
+
+The following slide may not be suitable for all audiences
+
+???
+- Those developers that are disturbed by shell scripts may want to turn away
+  for this next slide
+---
+
+# Fixing UID/GID
+
+```no-highlight
+# update the uid
+if [ -n "$opt_u" ]; then
+* OLD_UID=$(getent passwd "${opt_u}" | cut -f3 -d:)
+* NEW_UID=$(ls -nd "$1" | awk '{print $3}')
+  if [ "$OLD_UID" != "$NEW_UID" ]; then
+    echo "Changing UID of $opt_u from $OLD_UID to $NEW_UID"
+*   usermod -u "$NEW_UID" -o "$opt_u"
+    if [ -n "$opt_r" ]; then
+*     find / -xdev -user "$OLD_UID" -exec chown -h "$opt_u" {} \;
+    fi
+  fi
+fi
+```
+???
+- This is part of a shell script I package into a base image and run in the
+  entrypoint
+- The first highlighted line gets the UID of the user inside the container
+- The second highlight gets the UID of the file or directory mounted as a volume
+- If those two UID's do not match, I change the container to match the host
+  with the `usermod`
+- And after running that `usermod`, I run a `chown` on any files still owned
+  by the old UID inside the container
+
+---
+
+# Fixing UID/GID
+
+```no-highlight
+FROM openjdk:jdk as build
+*COPY --from=sudobmitch/base:scratch / /
+RUN  useradd -m app
+COPY code /code
+RUN  --mount=target=/home/app/.m2,type=cache \
+     mvn build
+*COPY entrypoint.sh /usr/bin/
+*ENTRYPOINT ["/usr/bin/entrypointd.sh"]
+CMD ["java", "-jar", "/output/app.jar"]
+USER app
+```
+???
+- I've packaged the above script and some other utilities into a base image
+  that can be used to extend your image with a `COPY --from`
+- And then I included an entrypoint.sh script...
+
+---
+
+# Fixing UID/GID
+
+```no-highlight
+#!/bin/sh
+if [ "$(id -u)" = "0" ]; then
+  fix-perms -r -u app -g app /code
+  exec gosu app "$@"
+else
+  exec "$@"
+fi
+```
+???
+- That entrypoint checks if I'm root, and if so, fixes the /code permissions to
+  match the app container uid
+- Then I have this `exec gosu` that drops from `root` to the `app` user and runs
+  the cmd
+- In prod where I don't run as root, and have matched the prod uid's to match
+  the image, this gets skipped and I exec the command
+- The end result is the cmd is running as the user as pid 1, all evidence of
+  the entrypoint is gone from the process list, making it transparent
+
+---
+
+# Fixing UID/GID
+
+```no-highlight
+version: '3.7'
+volumes:
+  m2:
+services:
+  app:
+    build:
+      context: .
+      target: build
+    image: registry:5000/app/app:dev
+    command: "/bin/sh -c 'mvn build && java -jar /output/app.jar'"
+*   user: "0.0"
+    volumes:
+    - ./code:/code
+    - m2:/home/app/.m2
+```
+???
+- The developer compose file is the same with one addition, the user
+  is set to root.
+- The production compose file wouldn't have any of this since we would be
+  running a JRE instead of a JDK, and would already be running as the app.
+
+---
+class: small
+
+# TODO: Testing with Multistage Builds
+
+```no-highlight
+FROM openjdk:jdk as build
+COPY src /src
+RUN  mvn build
+
+FROM openjdk:jre as release
+COPY --from=build /app.jar /
+CMD  java -jar /app.jar
+
+FROM openjdk:jdk as dev
+COPY --from=build /app.jar /
+CMD  /bin/bash
+
+FROM openjdk:jdk as test
+COPY --from=build /app.jar /
+RUN  mvn test
+
+FROM release
+```
+
+---
+
+layout: false
+class: title
+
+# Thank You
+
+### github.com/sudo-bmitch/presentations<br> github.com/sudo-bmitch/docker-base
+
+.left-column[
+.pic-80[![Slides QR](img/github-qr.png)]
+]
+.right-column[.align-right[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
