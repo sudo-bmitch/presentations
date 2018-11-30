@@ -70,6 +70,9 @@ li p {
   font-size: 18px;
 }
 .small .remark-code {
+  font-size: 20px; 
+}
+.tiny .remark-code {
   font-size: 16px; 
 }
 
@@ -81,7 +84,7 @@ li p {
 .title .content {
   width: 70%;
   float: right;
-  color: #949494;
+  color: #444;
 }
 .title h1 {
   font-size: 60px; 
@@ -142,7 +145,7 @@ li p {
 .impact .content {
   width: 75%;
   float: right;
-  color: #949494;
+  color: #444;
 }
 
 .inverse {
