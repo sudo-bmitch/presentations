@@ -34,9 +34,10 @@ name: agenda
 - [Cleaning Logs](#logs)
 - [Network Address Pools](#address-pools)
 - [Netshoot](#netshoot)
+- [Layers](#layers)
 ]
 .right-column[
-- [Layers](#layers)
+- [Merging Layers](#merge-layers)
 - [Buildkit](#buildkit)
 - [Local Volume Driver](#volume-local)
 - [Fixing Permissions](#fix-perms)
@@ -300,7 +301,6 @@ template: impact
 
 ???
 
-- Now that I've just worked myself out of a couple hundred jobs, who's hiring?
 - This isn't the hallway track
 - Though I will have a hallway track session after this
 
@@ -629,6 +629,7 @@ A /usr/bin/python3.5
 - If you create a temporary file in a step, delete it in that same step
 - Look for unexpected changes that trigger a copy-on-write, e.g. timestamps
 - Do your dirty work in early stages of a multi-stage build
+- Merge your `COPY` and `RUN` commands together
 
 ???
 - `chmod` and `chown` used to trigger CoW even without permission/owner changes
@@ -638,10 +639,13 @@ A /usr/bin/python3.5
 - Multi-stage lets you be very cache wasteful during the compile of your code
   while still shipping only the resulting binary in the final image
   - A messy cache full of compilers and source is useful to speed up the next build
+- Last bullet needs a plant from the audience saying:
+  "Wait, what, how? You can't do that!"
 
 ---
+name: merge-layers
 
-# Merge RUN Commands
+# Merge COPY and RUN
 
 ```no-highlight
 RUN apt-get update
@@ -662,7 +666,62 @@ RUN apt-get update \
 
 ---
 
-# Use Multi-Stage
+# Merge COPY and RUN
+
+```no-highlight
+COPY module_a /code/module_a/
+COPY module_b /code/module_b/
+```
+???
+- And merging multiple copy commands is also easy...
+
+--
+```no-highlight
+COPY code /code
+```
+???
+- Rearrange your build context so you can do one copy with lots of sub-dirs
+- But how do we merge a COPY and RUN
+
+---
+
+# Merge COPY and RUN
+
+```no-highlight
+COPY code /code
+RUN  extract-code.sh \
+ &&  compile-binaries.sh \
+ &&  cleanup-code.sh
+```
+???
+- But how do we merge this?
+
+---
+
+# Merge COPY and RUN with Just a RUN
+
+```no-highlight
+RUN  apt-get update \
+  && apt-get install -y curl build-essential \
+* && curl http://company-repo/latest/code.tgz >code.tgz \
+  && extract-code.sh \
+  && compile-binaries.sh \
+  && cleanup-code.sh \
+  && apt-get remove -y curl build-essential \
+  && rm -rf /var/lib/apt/lists/*
+```
+???
+- The old-school way was to put the code on an external server, and pull
+  that file with a curl
+- Issues:
+  - Manage an external artifact server
+  - Reinstall curl and compile environment on every build
+  - Docker doesn't know when it needs to rerun vs use the cache
+    - Often solved by using build args managed outside of docker
+
+---
+
+# Merge COPY and RUN with Multi-Stage
 
 ```no-highlight
 *FROM openjdk:jdk as build
@@ -695,7 +754,7 @@ template: inverse
 ---
 name: buildkit
 
-# BuildKit is Awesome
+# Merge COPY and RUN with BuildKit
 
 ```no-highlight
 *# syntax = tonistiigi/dockerfile:runmount20180607
@@ -728,7 +787,7 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 ---
 
-# BuildKit is Awesome
+# Merge COPY and RUN with BuildKit
 
 ```no-highlight
 $ export DOCKER_BUILDKIT=1
@@ -768,6 +827,30 @@ RUN pip install awscli
 ???
 - BuildKit does secrets, mounting a file from your host into the container
 - Now we can connect to secure sources without leaving those creds in the image
+
+---
+
+# BuildKit is Awesome
+
+```no-highlight
+# syntax = docker/dockerfile:experimental
+FROM alpine
+RUN apk add --no-cache openssh-client git
+RUN mkdir -p -m 0700 ~/.ssh \
+ && ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+*RUN --mount=type=ssh git clone git@gitlab.com:private/repo
+```
+
+```no-highlight
+$ eval $(ssh-agent)
+$ ssh-add ~/.ssh/id_rsa
+(Input your passphrase here)
+*$ docker build --ssh default=$SSH_AUTH_SOCK \
+  -t private-app .
+```
+???
+- Ssh creds are usually just a secret mount, but if you have a password on
+  your ssh key, you can use the `ssh-agent` and mount the ssh socket
 
 ---
 
@@ -821,11 +904,11 @@ CMD  /bin/bash
 
 # BuildKit is Awesome
 
-- Only runs the build steps needed for target stage
 - Dockerfile parser can be updated without updating docker engine
 - Build context ignores files you do not ADD or COPY
 - The build context is cached, similar to rsync
 - Uses remote registries efficiently for layer caching
+- Only runs the build steps needed for target stage
 
 ???
 
@@ -900,12 +983,12 @@ $ docker volume create \
 
 ```no-highlight
 $ docker container run -it --rm \
-* --mount \
+  --mount \
       type=volume,\
-*     dst=/container/path,\
+      dst=/container/path,\
       volume-driver=local,\
       volume-opt=type=nfs,\
-*   \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
+    \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
       volume-opt=device=:/host/path \
   foo
 ```
@@ -929,7 +1012,7 @@ $ docker service create \
   --mount \
       type=volume,\
       dst=/container/path,\
-*     src=foo-nfs-data,\
+      src=foo-nfs-data,\
       volume-driver=local,\
       volume-opt=type=nfs,\
     \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
@@ -997,6 +1080,28 @@ services:
 - If you have data on an ext4 or other drive, mount it directly into the
   container without first mounting it on the host
 - Options let you make it read-only
+
+---
+
+# Other Filesystem Mounts
+
+```no-highlight
+version: '3.7'
+volumes:
+  proc:
+    driver: local
+    driver_opts:
+      type: proc
+      device: proc
+services:
+  app:
+    volumes:
+      - proc:/ext-proc
+...
+```
+???
+- You could mount proc from the host, outside of the container namespacing
+- This would be bad, but you can do it
 
 ---
 
@@ -1082,11 +1187,11 @@ name: fix-perms
 ```no-highlight
 FROM openjdk:jdk as build
 *RUN  useradd -m app
-*USER app
-COPY code /home/app/code
+COPY code /code
 RUN  --mount=target=/home/app/.m2,type=cache \
      mvn build
-CMD ["java", "-jar", "/home/app/app.jar"]
+CMD ["java", "-jar", "/output/app.jar"]
+*USER app
 ```
 
 ???
@@ -1108,9 +1213,9 @@ services:
       context: .
       target: build
     image: registry:5000/app/app:dev
-*   command: "/bin/sh -c 'mvn build && java -jar /home/app/app.jar'"
+*   command: "/bin/sh -c 'mvn build && java -jar /output/app.jar'"
     volumes:
-*   - ./code:/home/app/code
+*   - ./code:/code
 *   - m2:/home/app/.m2
 ```
 ???
@@ -1122,7 +1227,7 @@ services:
 # Fixing UID/GID
 
 ```no-highlight
-Error accessing /home/app/code: permission denied
+Error accessing /code: permission denied
 ```
 --
 - `app` inside the container doesn't match `$USER` on the host
@@ -1143,10 +1248,16 @@ Possible solutions:
 - Change the container uid/gid from `run` or `compose`
 
 ???
-- Lots of bad solutions that will result in:
-  - Writing files as root or another user on your laptop
-  - Making a different image per developer
-  - Or still missing some edge cases (existing files owned by user in image)
+- Running everything as root allows a container escape to be root on the host,
+  and we also get files on our host owned by root that we can't edit outside of
+  the container.
+- Changing permissions to 777 allows anyone on the host to modify files, and 
+  files are owned by a different uid that we cannot modify.
+- Adjusting each developer's uid/gid is a pain, we could have multiple
+  conflicting images, and users may need to access a shared system with
+  individual UID's.
+- Adjusting each image would result in images that are specific to each developer
+- Changing the uid/gid of the container user doesn't change the file owners in the image
 
 --
 - **"... or we could use a shell script"** - Some Ops Guy
@@ -1196,14 +1307,14 @@ fi
 ```no-highlight
 FROM openjdk:jdk as build
 *COPY --from=sudobmitch/base:scratch / /
-*COPY entrypoint.sh /usr/bin/
-*ENTRYPOINT ["/usr/bin/entrypointd.sh"]
 RUN  useradd -m app
-USER app
-COPY code /home/app/code
+COPY code /code
 RUN  --mount=target=/home/app/.m2,type=cache \
      mvn build
-CMD ["java", "-jar", "/home/app/app.jar"]
+*COPY entrypoint.sh /usr/bin/
+*ENTRYPOINT ["/usr/bin/entrypointd.sh"]
+CMD ["java", "-jar", "/output/app.jar"]
+USER app
 ```
 ???
 - I've packaged the above script and some other utilities into a base image
@@ -1247,10 +1358,10 @@ services:
       context: .
       target: build
     image: registry:5000/app/app:dev
-    command: "/bin/sh -c 'mvn build && java -jar /home/app/app.jar'"
+    command: "/bin/sh -c 'mvn build && java -jar /output/app.jar'"
 *   user: "0.0"
     volumes:
-    - ./code:/home/app/code
+    - ./code:/code
     - m2:/home/app/.m2
 ```
 ???
@@ -1259,21 +1370,18 @@ services:
 - The production compose file wouldn't have any of this, use the release image
   with the JRE instead of JDK, and no other settings.
   - Prod will run as default app, with no volume mounts, build, or cmd.
-- Note when you restart the container, the app user has already been modified
-  from before, so all the uid/gid changing steps get skipped on the second pass
 
 ---
 
 # Fixing UID/GID
 
-- Developers can run the same image and compose file on multiple systems
-- App runs with the developers individual uid/gid
-- Changes to `./code` are owned by the developer
-- Same image in prod can run without ever needing root
-
-???
-
-- The prod compose file wouldn't change the user, cmd, or volumes
+- Developers run the container as root
+- Mount their code as `/code` from the host
+- `/code` has uid from the host
+- Entrypoint inside the container updates `app` user to match uid of `/code`
+- Entrypoint switches from root to app and runs container command with `exec`
+- Pid 1 is the app with a uid matching the host
+- Reads and writes to `/code` happen as the developers uid
 
 ---
 
@@ -1294,13 +1402,6 @@ name: thanks
 - Twitter: @sudo_bmitch
 - GitHub: sudo-bmitch
 ]]]]
-
-???
-- That went fast, you can get the presentation from this QR code
-- You can look a the base image and a working example in my docker-base repo
-- I'll be in a hallway track talking about multi-stage and buildkit at 1PM
-- I'll take questions until time runs out 
-- I'll be happy to discuss futher outside the doors after that
 
     </textarea>
     <!--
