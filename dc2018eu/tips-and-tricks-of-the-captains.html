@@ -31,7 +31,7 @@ name: agenda
 .content[.align-left[
 .left-column[
 - [Pruning](#prune)
-- [Cleaning Logs](#logs)
+- [Cleaning Logs + YAML](#logs)
 - [Network Address Pools](#address-pools)
 - [Netshoot](#netshoot)
 ]
@@ -109,14 +109,15 @@ template: inverse
 
 ---
 
+name: prune
 template: impact
 
 .content[
 # Ops 101 - Full Harddrive
 ]
-
+???
+- T: 2:00, [Skip to Cleaning Logs](#logs)
 ---
-name: prune
 # Prune
 
 ```no-highlight
@@ -152,7 +153,8 @@ $ docker run -d --restart=unless-stopped --name cleanup \
 ???
 
 - We now know how to do the job of an Ops, lets automate that job away
-- I call this YOLO for a reason
+- I call this YOLO for a reason, there's a large risk to deleting
+  something you didn't want to
 - Be careful since this removes stopped containers and untagged images
   - I've had it delete DTR containers that didn't restart automatically
   - Untagged images includes your build cache
@@ -183,6 +185,7 @@ name: logs
 
 ???
 
+- T: 5:00, [Skip to Network Address Pools](#address-pools)
 - Anyone here ever write a multi-threaded app and forget to lock the shared
   data before you modify it?
 
@@ -313,6 +316,7 @@ name: address-pools
 
 ???
 
+- T: 10:00 [Skip to Netshoot](#netshoot)
 - This happens especially when our laptops are moving, coffee shop, connecting
   to VPN's, or in prod where docker gets connected to the rest of the network
   after passing all the compliance tests.
@@ -391,6 +395,7 @@ name: netshoot
 
 ???
 
+- T: 13:30, [Skip to Layers](#layers)
 - This next tip is an old one but well worth repeating
 - K8s people know this as pod networking
 
@@ -478,13 +483,16 @@ $ docker run -it --rm --net container:web-app \
 
 ---
 
+name: layers
 template: impact
 
 .content[
-# Filesystems and Volumes
+# Layers and Volumes
 ]
+
+???
+- T: 16:30, [Skip to Buildkit](#buildkit)
 ---
-name: layers
 
 # Understanding Layers
 
@@ -676,13 +684,14 @@ RUN  mvn build
 ENTRYPOINT ["java", "-jar", "/app.jar"]
 ```
 ???
-- Multi-stage gave us the tools to not need to worry about merging COPY and RUN
-- Multi-stage is also much more efficient about reusing build layers, no need
-  to cleanup in the build stage since we only ship the final stage
-- Means the build stage can skip to the COPY and mvn step, without reinstalling
-  maven on every build
-- And it means our final image only ships with a JRE and jar file,
-  not a JDK or source
+- Multi-stage lets us have a container with the full JDK, add in our tools like
+  Maven, copy our code into the image, and build it, and not have any of that
+  in the final shipped image.
+- The final image is just minimum needed to run the image rather than build
+  it, so just the JDK and copying the JAR file from the previous stage.
+- Builds are faster since we only install the development tools once and then
+  get them from the cache in later builds.
+- And the resulting image is smaller.
 - So multi-stage is awesome! ...
 
 ---
@@ -711,6 +720,7 @@ COPY --from build /output/app.jar /app.jar
 ENTRYPOINT ["java", "-jar", "/app.jar"]
 ```
 ???
+- T: 23:30, [Skip to Local Volume Driver](#volume-local)
 - What's going on here? Weird comment, `--mount`, and where's COPY?
 - The first comment isn't a comment, it's a parser directive
   - The parser for this dockerfile is an image that we downloaded
@@ -725,28 +735,6 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 - Read-only code isn't very useful, probably still do multi-stage
 - But the cache will save a lot of time on builds, bind is useful for
   large data files
-
----
-
-# BuildKit is Awesome
-
-```no-highlight
-$ export DOCKER_BUILDKIT=1
-$ docker build -t your_image .
-```
-???
-- To run BuildKit, you just export an environment variable and build like normal
-
---
-
-```no-highlight
-$ cat /etc/docker/daemon.json
-{ "features": {"buildkit": true} }
-```
-
-???
-- Or to make BuildKit the new default, you can configure the daemon.json with
-  the above "features" setting
 
 ---
 
@@ -774,64 +762,23 @@ RUN pip install awscli
 # BuildKit is Awesome
 
 ```no-highlight
-FROM openjdk:jdk as build
-COPY src /src
-RUN  mvn build
-CMD  java -jar /app-a.jar
-
-FROM build as test
-RUN  mvn test
-
-FROM build as dev
-CMD  /bin/bash
-
-FROM openjdk:jre as release
-COPY --from=build /app.jar /
-CMD  java -jar /app.jar
+$ export DOCKER_BUILDKIT=1
+$ docker build -t your_image .
 ```
 ???
-- Lets run the following through BuildKit to make a release image
+- To run BuildKit, you just export an environment variable and build like normal
 
----
-
-# BuildKit is Awesome
+--
 
 ```no-highlight
-*FROM openjdk:jdk as build
-*COPY src /src
-*RUN  mvn build
-*CMD  java -jar /app-a.jar
-
-FROM build as test
-RUN  mvn test
-
-FROM build as dev
-CMD  /bin/bash
-
-*FROM openjdk:jre as release
-*COPY --from=build /app.jar /
-*CMD  java -jar /app.jar
+$ cat /etc/docker/daemon.json
+{ "features": {"buildkit": true} }
 ```
-???
-- Only src is pulled for the build context
-- If you build the final release, it skips dev and test
-- Or if you build the dev target, it will skip the test
-
----
-
-# BuildKit is Awesome
-
-- Only runs the build steps needed for target stage
-- Dockerfile parser can be updated without updating docker engine
-- Build context ignores files you do not ADD or COPY
-- The build context is cached, similar to rsync
-- Uses remote registries efficiently for layer caching
 
 ???
-
-- If you build with `--cache-from` to approve another image's cached layers,
-  buildkit will find those on the remote registry, and only pull the layers
-  where the cache matches
+- Or to make BuildKit the new default, you can configure the daemon.json with
+  the above "features" setting
+- BuildKit does a lot more than this, checkout Tibor's talk from yesterday
 
 ---
 
@@ -855,6 +802,7 @@ name: volume-local
 
 ???
 
+- T: 28:00, [Skip to Fixing Permissions](#fix-perms)
 - From Docker's documentation, we have steps to mount things like btrfs and
   nfs with the local volume driver
 - Nice thing is that this works out of the box, no 3rd party driver install
@@ -866,87 +814,6 @@ name: volume-local
     syscall which passes a device ":/path" with an option "addr"
 - To run a mount syscall, we need a type, source device, options, and target
 - With NFS, we can create a volume with better options than just this example...
-
----
-
-# NFS Mounts
-
-```no-highlight
-$ docker volume create \
-    --driver local \
-    --opt type=nfs \
-    --opt o=nfsvers=4,addr=nfs.example.com,rw \
-    --opt device=:/path/to/dir \
-    foo
-```
-
-???
-- The local driver is the default, I'm being explicit here
-- Type is "nfs", this can be any fs type supported by the host, ext4, ntfs, etc
-- Option "o" are additional options, comma separated, that you'd pass to mount
-  - Addr gets DNS resolved when type is NFS by Docker
-  - RW is read-write
-  - NFS ver is set to 4 here, instead of using the type "nfs4" to get DNS on ADDR
-  - If you do not set the NFS version, Linux goes through the different versions
-- Device in NFS is just the remote path, with a preceding colon
-  - That's what the mount syscall looks like after the NFS mount command moves
-    the IP to the addr option
-  - Note: the remote directory does need to exist!
-- But what if we don't want to create a volume?...
-
----
-
-# NFS Mounts
-
-```no-highlight
-$ docker container run -it --rm \
-* --mount \
-      type=volume,\
-*     dst=/container/path,\
-      volume-driver=local,\
-      volume-opt=type=nfs,\
-*   \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
-      volume-opt=device=:/host/path \
-  foo
-```
-
-???
-- For Docker Run, we have the `--mount` syntax, similar to `-v` 
-- It is more explicit / verbose
-- Allows different volume driver options for different mounts in the same
-  container
-- All of this is one long argument, the parameter string is comma separated,
-  I've only broken it across lines for the slides
-- The mount syntax also identical to the service create syntax which doesn't
-  support `-v`...
-
----
-
-# NFS Mounts
-
-```no-highlight
-$ docker service create \
-  --mount \
-      type=volume,\
-      dst=/container/path,\
-*     src=foo-nfs-data,\
-      volume-driver=local,\
-      volume-opt=type=nfs,\
-    \"volume-opt=o=nfsvers=4,addr=nfs.example.com\",\
-      volume-opt=device=:/host/path \
-  foo
-```
-
-???
-- Lets look at these parameters...
-- Type can be volume, bind, or tmpfs
-- DST or Target is where to mount the directory inside the container
-- SRC or Source is the volume name for named volumes,
-  host dir for bind, or empty for anonymous volume
-- With volume type, driver is any volume driver you want
-- And then we have type, device, and "o" as before
-- Note that `--mount` is comma separated as is opt `o`, so we need to quote that
-  entire section of the command, and escape those quotes from the bash shell
 
 ---
 
@@ -969,7 +836,9 @@ services:
 ```
 
 ???
-- Everything we did in a volume create has a mapping to the compose file
+- Here is the compose file to create an NFS mount with the local volume driver
+- The type is NFS, options are NFS specific plus a RW flag
+- Device is the path on the remote server
 - This is all you need to run an HA service in swarm with persistent data
   if you have HA storage available over NFS
 - What else can we mount?...
@@ -1091,6 +960,7 @@ CMD ["java", "-jar", "/home/app/app.jar"]
 
 ???
 
+- T: 32:00, [Skip to End](#thanks)
 - Going back to the Java example, lets see how the UID/GID issues impact us
 - Lets make our container more secure by configuring it to run as a non-root user
 
@@ -1125,7 +995,7 @@ services:
 Error accessing /home/app/code: permission denied
 ```
 --
-- `app` inside the container doesn't match `$USER` on the host
+- UID of `app` inside the container doesn't match developer's UID on the host
 
 ???
 - When we try to run that, we often find that the UID inside the container doesn't

@@ -1,4 +1,4 @@
-# Presentaions from Brandon Mitchell
+# Presentations from Brandon Mitchell
 
 These slides are made with RemarkJS and should be viewable in any browser. From
 the desktop, you can press "P" to see presenter notes. PDF's have also been
