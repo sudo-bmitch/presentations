@@ -327,7 +327,7 @@ name: address-pools
 ```no-highlight
 $ cat /etc/docker/daemon.json
 {
-  "bip": "10.15.0.0/24"
+  "bip": "10.15.0.1/24"
 }
 ```
 
@@ -778,7 +778,8 @@ $ cat /etc/docker/daemon.json
 ???
 - Or to make BuildKit the new default, you can configure the daemon.json with
   the above "features" setting
-- BuildKit does a lot more than this, checkout Tibor's talk from yesterday
+- BuildKit does a lot more than this, checkout video of Tibor and Sebastiaan's
+  talk from yesterday, or there's also a Black Belt talk happening right now
 
 ---
 
@@ -978,7 +979,7 @@ services:
       context: .
       target: build
     image: registry:5000/app/app:dev
-*   command: "/bin/sh -c 'mvn build && java -jar /home/app/app.jar'"
+*   command: "/bin/sh -c 'mvn build && java -jar app.jar'"
     volumes:
 *   - ./code:/home/app/code
 *   - m2:/home/app/.m2
@@ -1117,7 +1118,7 @@ services:
       context: .
       target: build
     image: registry:5000/app/app:dev
-    command: "/bin/sh -c 'mvn build && java -jar /home/app/app.jar'"
+    command: "/bin/sh -c 'mvn build && java -jar app.jar'"
 *   user: "0.0"
     volumes:
     - ./code:/home/app/code
