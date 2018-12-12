@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Tips and Tricks From A Docker Captain - Brandon Mitchell</title>
+    <title>Docker Tips and Tricks - Brandon Mitchell</title>
     <meta charset="utf-8">
     <style>
       @import url(style.css);
@@ -49,7 +49,7 @@ class: title
 name: title
 
 .content[
-# Tips and Tricks<br>From A Docker Captain
+# Docker<br> Tips and Tricks
 
 .left-column[
 .pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
@@ -762,6 +762,30 @@ RUN pip install awscli
 # BuildKit is Awesome
 
 ```no-highlight
+# syntax = docker/dockerfile:experimental
+FROM alpine
+RUN apk add --no-cache openssh-client git
+RUN mkdir -p -m 0700 ~/.ssh \
+ && ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+*RUN --mount=type=ssh git clone git@gitlab.com:private/repo
+```
+
+```no-highlight
+$ eval $(ssh-agent)
+$ ssh-add ~/.ssh/id_rsa
+(Input your passphrase here)
+*$ docker build --ssh default=$SSH_AUTH_SOCK \
+  -t private-app .
+```
+???
+- Ssh creds are usually just a secret mount, but if you have a password on
+  your ssh key, you can use the `ssh-agent` and mount the ssh socket
+
+---
+
+# BuildKit is Awesome
+
+```no-highlight
 $ export DOCKER_BUILDKIT=1
 $ docker build -t your_image .
 ```
@@ -780,6 +804,54 @@ $ cat /etc/docker/daemon.json
   the above "features" setting
 - BuildKit does a lot more than this, checkout video of Tibor and Sebastiaan's
   talk from yesterday, or there's also a Black Belt talk happening right now
+
+---
+
+# BuildKit is Awesome
+
+```no-highlight
+FROM openjdk:jdk as build
+COPY src /src
+RUN  mvn build
+CMD  java -jar /app-a.jar
+
+FROM build as test
+RUN  mvn test
+
+FROM build as dev
+CMD  /bin/bash
+
+FROM openjdk:jre as release
+COPY --from=build /app.jar /
+CMD  java -jar /app.jar
+```
+???
+- Lets run the following through BuildKit to make a release image
+
+---
+
+# BuildKit is Awesome
+
+```no-highlight
+*FROM openjdk:jdk as build
+*COPY src /src
+*RUN  mvn build
+*CMD  java -jar /app-a.jar
+
+FROM build as test
+RUN  mvn test
+
+FROM build as dev
+CMD  /bin/bash
+
+*FROM openjdk:jre as release
+*COPY --from=build /app.jar /
+*CMD  java -jar /app.jar
+```
+???
+- Only src is pulled for the build context
+- If you build the final release, it skips dev and test
+- Or if you build the dev target, it will skip the test
 
 ---
 
@@ -912,6 +984,7 @@ services:
   app:
     volumes:
       - "bind-test:/test"
+      - "/home/user/data:/data"
 ...
 ```
 ???
@@ -1148,18 +1221,6 @@ services:
 
 ---
 
-# Take A Breakout Survey
-
-Access your session and/or workshop surveys for the conference at any time by
-tapping the Sessions link on the navigation menu or block on the home screen.
-
-Find the session/workshop you attended and tap on it to view the session
-details. On this page, you will find a link to the survey.
-
-.center[.pic-50[![Breakout Survey](img/survey.png)]]
-
----
-
 layout: false
 class: title
 name: thanks
@@ -1181,9 +1242,39 @@ name: thanks
 ???
 - That went fast, you can get the presentation from this QR code
 - You can look a the base image and a working example in my docker-base repo
-- I'll be in a hallway track talking about multi-stage and buildkit at 1PM
 - I'll take questions until time runs out 
-- I'll be happy to discuss futher outside the doors after that
+- And now to hand it Joe to talk a bit about how EE can help
+
+---
+
+background-image: url(img/webinar-docker-ee.png)
+
+---
+
+layout: false
+class: title
+
+.content[
+# BoxBoat
+
+### boxboat.zohosites.com
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.v-align-mid[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+
+???
+- That went fast, you can get the presentation from this QR code
+- You can look a the base image and a working example in my docker-base repo
+- I'll take questions until time runs out 
+- And now to hand it Joe to talk a bit about how EE can help
 
     </textarea>
     <!--
