@@ -10,3 +10,6 @@ Note, this talk is from DockerCon 2018 EU and is a continuation on the
 Captain [Adrian Mouat](https://twitter.com/adrianmouat). Check out [his talk
 from DockerCon 2018 in San Francisco](https://drive.google.com/file/d/1RBAl2PfTnn-IZWzQEoiISaXh4GQOpjxL/view).
 
+There was also a webinar given based on the above talk. Slides are almost identical to those above:
+- [Webinar presentation](https://sudo-bmitch.github.io/presentations-webinar-20181212/dc2018eu/tips-and-tricks-of-the-captains.html)
+
