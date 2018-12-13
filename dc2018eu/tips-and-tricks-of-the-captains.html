@@ -1119,7 +1119,7 @@ services:
       target: build
     image: registry:5000/app/app:dev
     command: "/bin/sh -c 'mvn build && java -jar app.jar'"
-*   user: "0.0"
+*   user: "0:0"
     volumes:
     - ./code:/home/app/code
     - m2:/home/app/.m2
