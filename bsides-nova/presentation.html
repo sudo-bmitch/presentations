@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Containing Security Vulnerabilities with Containers - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+name: impact
+layout: true
+class: left, middle, impact
+---
+name: centered
+layout: true
+class: center, middle
+---
+name: terminal
+layout: true
+class: center, middle, terminal
+---
+layout: false
+template: impact
+name: agenda
+
+# Agenda
+
+.content[
+.left-column[
+- [What is a Container](#what-is-a-container)
+- [Bad for Security](#bad-for-security)
+- [Vulnerable App](#vulnerable-app)
+- [Dockerize](#dockerize)
+- [Ephemeral](#ephemeral)
+]
+.right-column[
+- [Run as a User](#user)
+- [Read Only Filesystem](#read-only)
+- [Scratch Filesystem](#scratch)
+- [Good for Security](#good-for-security)
+- [Advanced](#advanced)
+]
+]
+
+---
+layout: false
+name: title
+
+# Containing Security Vulnerabilities with Containers
+
+<br><br>
+.left-column[.align-center[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]]
+.right-column[.align-left[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+
+???
+
+- As you can see from my slides, I'm not the frontend designer.
+- This talk is very introductory on Docker, I'll be showing a very vanilla 
+  install without any external vendor tools
+  - That also means this isn't a sales pitch
+- Send any criticisms to Twitter so that I can block you there.
+- If you find any typos, send a PR to my github repo where this presentation
+  and others are available. I'll have the full link at the end, but it's
+  easy to find with my github name.
+
+---
+
+```no-highlight
+$ whoami
+Brandon Mitchell
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+- Became a Docker Captain after answering way too many SO questions
+- The Captains program is a bit like a community based evangelist program
+  - Not a Docker employee, do receive a bit more insider access
+
+---
+
+name: what-is-a-container
+template: inverse
+
+# What is a Container
+
+???
+
+- First a level set, for those that don't know containers
+
+---
+
+# What is a Container
+
+- Process Isolation with a Shared Kernel
+- Namespaces: Pids, Filesystem, Network
+- Cgroups: Memory and CPU limits
+- Minimal Filesystem
+- Ephemeral and Immutable
+
+???
+
+- VMs give you an isolated OS, Containers give you an isolated application
+- PID namespace: only see your processes, no other OS daemons
+- Filesystem is just the dependencies to run your application
+- Network isolation give you a private loopback, unique IP
+- Ephemeral: containers should be temporary, upgrade by replacing
+- Immutability: changes to filesystem are lost when container is replaced
+- Data: stored external and mounted into the container (volume)
+
+---
+
+name: bad-for-security
+template: inverse
+
+# Containers Are Bad For Security
+
+???
+
+- "True security uses VMs"
+
+---
+
+# Containers Are Bad For Security
+
+- Shared Kernel
+- Running Unknown Code
+- Lateral Pivoting
+- Running as Root
+- Docker API Gives Root Access
+
+???
+
+- This is 100% true, 50% of the time
+- 78% of statistics are completely made up
+- A kernel level exploit gives you access to the host
+- Most vulnerabilities are not docker itself but running vulnerable apps
+- There have been crypto-coin miners uploaded to the Hub for people to run
+- Once in, containers tend to trust containers, easy to laterally pivot
+- Docker is a sysadmin level tool that's used by developers
+  - The API gives root access to the host
+  - Most docker administrative tools mount that API access into a container
+
+---
+
+name: vulnerable-app
+template: inverse
+
+# The Vulnerable App
+
+???
+
+- Yes, containers have their security concerns, but lets see how they can
+  help security by placing a vulnerable app inside of a container
+- This will be a Go app, but most of what we will do applies to other languages
+
+---
+
+# The Vulnerable App
+
+```no-highlight
+http.HandleFunc("/rce", rce)
+...
+func rce(w http.ResponseWriter, r *http.Request) {
+	script := r.FormValue("script")
+	cmd := exec.Command("/bin/sh", "-c", script)
+}
+```
+
+???
+
+- Lets take an overly simplified vulnerable application
+- I did not place this on the network here, for obvious reasons
+- It takes any request to /rce, and runs the value of the script parameter
+- Easy button example of remote code execution
+
+--
+
+```no-highlight
+curl --data-urlencode "script=$*" -X POST localhost:6666/rce
+```
+
+???
+- To run this, we can use curl with an argument
+
+---
+
+template: terminal
+
+<asciinema-player src="p1-physical.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- We have a simple go program, it's an http server with that RCE
+- The exploit script is just that curl command
+- We can see that commands to this run directly on the host under the user id
+- Files created also show up on the host
+
+---
+
+name: dockerize
+template: inverse
+
+# Place the App Inside a Container
+
+???
+
+- Now lets place that vulnerable app inside of a container, we'll get
+  - Namespaces
+  - Limited filesystem
+
+---
+
+# Dockerfile
+
+```no-highlight
+FROM golang:latest
+WORKDIR /app
+COPY . /app/
+RUN go build -o app .
+CMD ./app
+```
+
+???
+
+- The Dockerfile is code/configuration to build an image
+- Unlike a Makefile or Ansible Playbook, Dockerfile's start from a known state
+  and add just the parts needed to run the application
+- The resulting image contains the filesystem and metadata that tells docker
+  how to run that image
+  - `FROM`, `COPY`, and `RUN` add bits to the filesystem
+  - `WORKDIR` and `CMD` add metadata
+
+---
+
+template: terminal
+
+<asciinema-player src="p2-dockerize.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- Here's that Dockerfile, nothing up my sleeves
+- The build command processes that Dockerfile to generate an image
+  - Everything is cached here, it usually takes a little longer than this
+- The run command takes that image, which is a template for a container,
+  and creates a container
+- That didn't work, why can't we connect?
+
+---
+
+# Namespaces
+
+- Docker networking in namespaced, loopback inside the container is private to
+  that container.
+
+```no-highlight
+$ git diff phase-2-docker phase-3-fix-port
+diff --git a/main.go b/main.go
+--- a/main.go
++++ b/main.go
+@@ -10,7 +10,7 @@ func main() {
+        fmt.Print("Ready to receive requests on port 6666\n")
+*-       http.ListenAndServe("127.0.0.1:6666", nil)
+*+       http.ListenAndServe(":6666", nil)
+ }
+```
+
+---
+
+template: terminal
+
+<asciinema-player src="p3-fix-port.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- So now we have the change to the http listener for "all interfaces"
+- In this case, the image wasn't cached so you can see a more typical delay
+- Our exploit now works, we're even root now
+- But for some reason we cannot change the hostname to evilcorp
+- And we cannot turn back time to have a Y2K party
+- We can ping outside the network
+- We can load our exploits onto the filesystem
+- And as root, we can change the file ownership
+
+---
+
+# Capabilities
+
+- Docker removes capabilities from root inside of the container
+- Root inside of a container is not the same as root on the host
+- We can add or remove capabilities per container
+
+
+???
+
+- The reason we cannot do some root tasks inside the container is because
+  of reduced capabilities
+- Default removed capabilities prevent an escape or modification of the host
+
+---
+
+template: terminal
+
+<asciinema-player src="p4-capabilities.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- Here I'm dropping two default capabilities since our app doesn't need them
+  - `NET_RAW` gives lower level network access
+  - `CHOWN` is exactly what it looks like, changing file ownership
+- Now we cannot ping from inside the container
+- Nor can we chown the file
+
+---
+
+name: ephemeral
+template: inverse
+
+# Ephemeral and Immutable
+
+???
+
+- These two words often get thrown around with containers, but what do we mean?
+
+---
+
+# Ephemeral and Immutable
+
+- Images are immutable
+- Containers are ephemeral
+
+???
+
+- Images are the template used to create containers
+  - Filesystem and metadata resulting from a build
+  - Immutable means we cannot change it, the filesystem layers are fixed
+  - You can even cryptographically sign them
+  - You don't modify an image, but you can replace it
+  - New image will have a new hash, but you can adjust the common tags to
+    point to it, similar to DNS pointing to an IP address
+- Containers are an instance of an image with namespaces and the running app
+  - Filesystem changes in the container are associated with the container
+  - Deleting the container deletes those filesystem changes
+- Goal is infrastructure as code
+  - To make a change, you check-in that change, build a new image, and
+    replace the running containers with new ones
+  - Eliminates state drift
+
+---
+
+template: terminal
+
+<asciinema-player src="p5-ephemeral.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- So lets see an example
+  - We run our same container as before
+  - We drop in the malware and can see it exists
+  - But note this file is inside the container, it doesn't exist on the host
+  - So now if we delete and recreate that container, our change is gone
+- For an attacker,
+  - immutable means you can't mess with the underlying image
+  - and ephemeral means your changes will be lost
+- For a defender,
+  - fixing things often means redeploying a new container
+  - but the caution is that you may lose evidence of an attack
+
+---
+
+# What about persistent data?
+
+- Volume mounts in a container store data externally
+- A volume can give access to the host
+- Data on a volume will often be valuable to attackers
+- Backup and versioning of volume data is external to docker
+
+???
+
+- Immutable and Ephemeral are great for apps without data, but most apps
+  have some data
+- For that you need volume mounts
+- Access to the host can also be things like mounting the docker API into a
+  management container
+- If you `rm -rf` on a volume, the user better have a backup
+
+---
+
+name: user
+template: inverse
+
+# Run as a User
+
+---
+
+# Run as a User
+
+- Containers are rarely a multi-user environment
+- An escape from the container will not be root on the host
+- Linux file permissions protect files inside the container
+- Unable to bind to low numbered ports (80, 443)
+
+???
+
+- Inside the container, it's rarely multi-user, and it's ephemeral, so why care?
+- Root inside the container has fewer capabilities, but still has some capabilities
+- Root is still UID 0 for the filesystem
+- So lets run our application as a user instead of root
+- Containers often need to work with external volumes and uid of container
+  may surprise you when it uses that uid on the host
+  - One solution I often use to work around volume permission problems is to
+    start as root, fix user permissions (or in my case, change the uid of the
+    user inside of the container to match the file owner of the volume), and
+    then drop privileges to a user.
+- For port binding, we can map a high number container port to a low numbered
+  host port
+  - An app could start as root bind to a low numbered port, and then drop
+    to a normal user.
+
+---
+
+template: terminal
+
+<asciinema-player src="p6-user.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- To run a container as a user, you can pass another option
+- You could also modify the image, but that's not required, images on the hub
+  can still default to root and you can adjust it when you run the container
+- We can see the new `id` output showing uid 1000 now
+- All the files on the filesystem are still owned by root inside the container
+  since that's how we created them
+- The `echo echo` isn't a typo, I'm putting an echo command inside of the file
+- That means we cannot write our exploit to this directory because of linux
+  file permissions
+- However, just about any linux environment allows anyone to create files in
+  `/tmp` which an attacker can still use
+
+---
+
+name: read-only
+template: inverse
+
+# Read Only Filesystems
+
+???
+
+- Show of hands, how many run your VMs or physical host with read only root
+  filesystems
+
+---
+
+# Read Only Filesystem
+
+- With containers:
+  - Binaries are changed by creating new images
+  - Containers are ephemeral
+  - Logs are written to stdout
+- Why give write access to the filesystem?
+- For temp files, we can create mounts with noexec and nosuid options
+
+???
+
+- Why do containers need write access to the filesystem?
+  - Not for binaries, not for data inside the container, not for logs
+- So lets make that filesystem read-only
+- However, volumes and temp directories will still be an issue, but a
+  reduced risk because we can mount volumes without exec access
+
+---
+
+template: terminal
+
+<asciinema-player src="p7-read-only.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- The read-only flag applies to the entire root filesystem
+- The tmpfs mount adds a volume, stored in memory, with 1777 file permissions,
+  at /app/run, could be anywhere
+- When we try to write to /tmp, we see that the filesystem is read-only,
+  even though file permissions would normally allow it
+- From the mount output we see `/` is `ro`, but `/app/run` is `rw`
+- Trying to run code in `/app/run` encounters the `noexec` flag set on the mount
+- But a script is just data, you can run `sh` and pass the script as input
+- If `python`, `java`, `node`, or any other interpreter/runtime exists, we
+  can ship a payload that doesn't require exec access.
+
+---
+
+name: scratch
+template: inverse
+
+# No Filesystem
+
+???
+
+- As long as we have a shell, we have an issue
+- So lets get rid of everything
+
+---
+
+# No Filesystem
+
+- Docker's `scratch` filesystem contains nothing
+- No shells to run, no libraries, no compilers
+- App must be statically compiled
+- Must include all dependencies
+
+???
+
+- When you think scratch, think `rm -rf` or `format c:`
+
+---
+
+template: terminal
+
+<asciinema-player src="p8-scratch.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- I'm using Docker's multi-stage build to compile my go app in one image,
+  and copy the resulting binary to a second image that I run
+- The two `FROM` lines indicate this is a multi-stage, with `as` for each stage name
+- For the build command I need to disable CGO to avoid dynamic links to libc
+- I'm moving the user into the image instead of defining it at run time
+- The `COPY --from=build` takes the file from another image or stage
+- The run command is the same except for removing the user specification
+- Our first attempt fails because appuser doesn't exist in the scratch image
+- We need to copy dependencies like passwd over, I've added TLS certs and
+  timezones as additional examples you may want to copy
+- The second attempt fails because /bin/sh doesn't exist, but where do we call
+  that? It's embedded in the `CMD` syntax. We need to switch to a json format
+  to run the binary with a Linux `exec` syscall instead of a `/bin/sh` shell.
+- Our third attempt didn't seem to do anything, lets add some error handling
+- Now we can see that /bin/sh doesn't exist, so our exploit is now failing
+- To understand better what scratch looks like, lets build an image that
+  copies all the files from our scratch image, and run a simple find command
+- In the find output, we see our app, some /etc/ files we copied, way too
+  many timezones, but no /bin, not /var, no /home, no /lib, not even /tmp
+
+---
+
+# Minimal Filesystem
+
+- Even if you can't go `scratch`, go minimal
+- Avoid compilers, editors, or other administrative tools
+- Have a separate developer image for debugging
+- Do not run that developer image in production
+
+???
+
+- That was an extreme example, but one seen in a fair number of containers
+  that are built on compiled code like Go lang.
+- If you can't do that, at least minimize, use a JRE instead of JDK
+- Don't include the tools an attacker can use against you, no nmap in your
+  production containers
+- If your developers need a full debugging environment, have that in a
+  separate image that you do not run in prod. I've seen multi-stage designs
+  with build, dev, unit test, image scanning, and prod release.
+
+---
+
+name: good-for-security
+template: inverse
+
+# Containers Are Good For Security
+
+???
+
+- So we've come full circle, despite all the negatives, containers are good
+
+---
+
+# Containers Are Good For Security
+
+- Additional layer of defense
+- Remove tools for attackers to use
+- Remove capabilities and access at a per app level
+- Lock down the filesystem: read-only and noexec
+
+???
+
+- You can use VMs with containers for higher security requirements
+
+---
+
+name: advanced
+template: inverse
+
+# Advanced Mode
+
+---
+
+# Advanced Mode
+
+- User Namespaces
+- Syscalls: Seccomp, Sysdig, Falco
+- Runtimes: Gvisor, Kata, Firecracker
+- Image scanning: Clair, Anchore, Aqua, DTR
+- Image signing: Notary / Content Trust
+- Docker API: Twistlock, Open Policy Agent (OPA), UCP
+- Service Mesh: Istio, Envoy
+- CIS: Docker Bench Security
+
+???
+
+- User Namespaces are built right into docker, but I say it's advanced because
+  enabling them breaks common use cases with host volumes.
+  - Root inside the container will now be uid 10,000 on the host
+  - Set on daemon, not per container, and all images need to be pulled again
+- Seccomp: profile your application, and only enable the syscalls it needs
+  - Docker provides a default profile
+- Sysdig: uses a kernel module and eBPF to monitor and notify
+  - Sysdig is reactive, seccomp is proactive
+  - Sysdig/Falco is more granular, policies on specific binaries or conditions
+- Gvisor: user space kernel, intercepts syscalls before passing through
+  - provided by Google, faster than a VM, doesn't support every app
+- Kata containers: runs container in a VM, still susceptible to VM exploits (qemu)
+- Firecracker: released by AWS, hopefully less vulnerable than Qemu
+- Image scanning: verifies there are no known vulnerabilities
+  - Information overload, no details if vulnerability is in critical path
+  - Make sure your scanner checks for binaries installed outside of the package manager
+- Image signing: key management headache, is an image more trustworthy when
+  someone in the org signs it (did you verify they started from a trusted source)?
+- Docker API limits by either an AuthZ plugin or completely proxy the API
+  - Easier to not give users any access at all, only let CI/CD touch API directly
+- Service Mesh's give you an application level firewall capability with a zero
+  trust foundation. Connections between services are encrypted, mTLS verification.
+  These are still relatively immature, but a key piece of blocking lateral attacks.
+- The Center for Internet Security puts out guidelines for various products
+  including Docker. Docker has that implemented in a container based scanner
+  you can run. Checks from this are overly paranoid IMO, and extend beyond
+  security.
+
+---
+
+# Before Going to Production
+
+- Orchestration: Kubernetes, Swarm
+- CI/CD: Automate, do not deploy by hand
+- Metrics: OpenMetrics, Prometheus, Grafana
+- Logging: Elastic, Splunk
+- Tracing: OpenTracing, Jagger
+
+???
+
+- Orchestration gives the high availability while supporting deployments/upgrades
+- CI/CD: automation, users shouldn't touch prod
+- Metrics: known when you are reaching capacity, DDOS
+- Logging: containers are ephemeral, and so are their logs, export them to a central source
+- Tracing: provides a browser developer tools waterfall like view of networking
+  calls but for requests through multiple layers of microservices on the server
+  - Joke: microservices turns every outage into a murder mystery
+
+---
+
+template: centered
+
+# CNCF Landscape
+
+.pic-80[![CNCF Landscape](img/cncf-landscape.png)]
+
+???
+
+- If I haven't dumped enough tools on you, the CNCF has a long list of other tools and vendors
+
+---
+
+# Don't Skip the Basics
+
+- Trusted base image
+- Minimal images
+- Run as a user
+- Read only filesystem
+- Patch and Update Regularly
+- Protect the docker API
+
+???
+
+- The key take away I hope you have is that all these tools are great, but
+  with some basic built-in functionality, we can turn a soft target into a
+  hardened bunker
+
+---
+
+# Thank You
+
+## Questions?
+
+github.com/sudo-bmitch/presentations
+
+.left-column[.align-center[
+.pic-80[![Slides](img/slides-qr.png)]
+]]
+.right-column[.align-left[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
