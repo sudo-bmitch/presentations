@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Presentation - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+name: impact
+layout: true
+class: center, middle, impact
+---
+name: centered
+layout: true
+class: center, middle
+---
+name: terminal
+layout: true
+class: center, middle, terminal
+---
+layout: false
+template: impact
+name: agenda
+
+# Agenda
+
+.left-column[
+- [topic 1](#topic-1)
+- [topic 2](#topic-2)
+- [topic 3](#topic-3)
+- [topic 4](#topic-4)
+]
+.right-column[
+- [topic 5](#topic-5)
+- [topic 6](#topic-6)
+- [topic 7](#topic-7)
+- [topic 8](#topic-8)
+]
+
+---
+layout: false
+name: title
+
+# Tips and Tricks<br>From A Docker Captain
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.v-align-mid[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+???
+- My twitter and github handles are what any self respecting sysadmin does
+  when you get a permission denied error on your favorite username.
+- This presentation is on github and I'll have a link to it at the end,
+  I'll be going fast so don't panic if you miss a slide.
+---
+
+```no-highlight
+$ whoami
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+---
+
+template: inverse
+
+# Inverse slide
+
+???
+
+- Discussion content
+
+---
+
+# Normal Slide
+
+- Bullets
+
+---
+
+class: center
+
+.pic-80[![Alt Text](img/image.png)]
+
+---
+
+# Code page
+
+```no-highlight
+code
+goes
+here
+```
+
+---
+
+template: terminal
+name: topic-2
+class: center
+
+<asciinema-player src="file.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+---
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
