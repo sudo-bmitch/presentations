@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tips and Tricks From A Docker Captain - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: empty
+layout: true
+---
+name: base
+layout: true
+template: empty
+background-image: url(img/bg-white-simple.png)
+<div class="slide-footer">Tips and Tricks of the Docker Captains - @sudo_bmitch</div>
+---
+name: title
+layout: true
+template: empty
+class: center, middle, left75
+background-image: url(img/bg-city.png)
+---
+name: inverse
+layout: true
+template: base
+class: center, middle, inverse
+background-image: none
+---
+name: impact
+layout: true
+template: base
+class: center, middle, impact, right75
+background-image: url(img/bg-scooter.png)
+---
+name: picture
+layout: true
+template: base
+class: center, middle
+---
+name: terminal
+layout: true
+template: base
+class: center, terminal
+background-image: url(img/bg-black.png)
+background-size: contain
+---
+name: default
+layout: true
+template: base
+---
+template: impact
+name: agenda
+
+# Agenda
+
+.content[.align-left[
+.left-column[
+- [Pruning](#prune)
+- [Cleaning Logs](#logs)
+- [Network Address Pools](#address-pools)
+- [Netshoot](#netshoot)
+]
+.right-column[
+- [Layers](#layers)
+- [BuildKit](#buildkit)
+- [Local Volume Driver](#volume-local)
+- [Fixing Permissions](#fix-perms)
+]
+]
+.no-column[
+<br><br><br><br>
+]
+]
+---
+template: empty
+class: title
+name: title
+
+# Tips and Tricks<br>Of The Docker Captains
+
+.content[
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.align-right[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+???
+- First started by Adrian Mouat, away on honeymoon
+- These slides are already up on my github repo
+---
+template: impact
+name: agenda
+
+# Agenda
+
+.content[.align-left[
+.left-column[
+- [Pruning](#prune)
+- [Cleaning Logs](#logs)
+- [Network Address Pools](#address-pools)
+- [Netshoot](#netshoot)
+]
+.right-column[
+- [Layers](#layers)
+- [BuildKit](#buildkit)
+- [Local Volume Driver](#volume-local)
+- [Fixing Permissions](#fix-perms)
+]
+]
+.no-column[
+<br><br><br><br>
+]
+]
+???
+- I over promised in the abstract, so this talk will move quick
+- We will cover 8 different areas for tips, and with only 40 minutes to do so
+---
+template: default
+
+```no-highlight
+$ whoami
+Brandon Mitchell aka bmitch
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+- BoxBoat is a Docker Business Partner that provides consulting services
+  around containers (mandatory plug to get expenses reimbursed)
+- Docker Captains is a recognition of community members spreading knowledge
+  about docker. That may be blogs, training, speaking, or in my case...
+- I joined the Captains program after answering way too many StackOverflow
+  questions. Up to ~1.4k on the docker tag.
+
+---
+
+template: inverse
+
+# Who is a Developer?
+
+???
+
+- Show of hands... I'm feeling a little outnumbered.
+- I'm one of the minority that came to docker from the Ops side.
+- Many of these tips will be Ops focused, but useful to everyone.
+
+---
+
+template: impact
+
+.content[
+# Disk Usage
+]
+
+???
+
+Time: 1:00
+- One of the common complaints is my harddrive is full.
+
+---
+name: prune
+# Prune
+
+```no-highlight
+*$ docker system prune
+WARNING! This will remove:
+        - all stopped containers
+        - all networks not used by at least one container
+        - all dangling images
+        - all build cache
+```
+???
+
+- Be careful running this in Prod
+- Consider labeling your containers
+- Won't delete everything
+
+--
+What this doesn't clean by default:
+- Running containers (and their logs)
+- Tagged images
+- Volumes
+
+---
+
+# Prune - YOLO
+
+```no-highlight
+$ docker run -d --restart=unless-stopped --name cleanup \
+    -v /var/run/docker.sock:/var/run/docker.sock
+    docker /bin/sh -c \
+    "while true; do docker system prune -f; sleep 1h; done"
+```
+
+???
+
+- How you can automate the accidental deletion of data.
+- Tip from Bret Fisher
+- Be careful since this removes stopped containers and untagged images
+  - Stopped container may be important and need a restart
+  - Untagged images includes your build cache
+
+--
+
+```no-highlight
+$ docker service create --mode global --name cleanup \
+    --mount type=bind,src=/var/run/docker.sock,\
+            dst=/var/run/docker.sock \
+    docker /bin/sh -c \
+    "while true; do docker system prune -f; sleep 1h; done"
+```
+
+???
+
+- For Swarm, mode is global, and volume is now a mount command
+- The mount flag has one long arg, had to be split for the slides
+
+---
+template: impact
+name: logs
+
+.content[
+# Container Logs
+]
+
+???
+
+Time: 5:00
+- Don't prune running containers
+- And we don't prune their logs
+- Long running containers can fill your disk
+
+---
+template: terminal
+
+<asciinema-player src="code-logs1.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- Here's an app that generates lots of logs
+- Those logs are stored as json in the container folder, by default
+- App logs on the bottom show ~50% overhead of json
+- There is no size limit, by default
+- Rotating yourself could break that json formatting (think of two writers
+  without a lock in a multi-threaded app)
+- Luckily "without any limits" is just the default... we can change that
+
+---
+template: terminal
+
+<asciinema-player src="code-logs2.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- Lets run that same example with a few extra options
+- max-size limits the size of each of these json log files
+- max-file limits the number of json files
+- Once the limit is hit, the last file is deleted, note the inodes
+- Docker does the rotation for you, just need to pass a config
+
+---
+template: terminal
+
+<asciinema-player src="code-logs3.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- In 18.09, docker added the local logging driver
+- This stores the logs in a different place, docker would prefer if you don't
+  access this directly, they reserve the right to move things
+- Storage is protobuf instead of json
+- More efficient, ~25% overhead
+- Won't work with json logfile forwarders (Splunk, Elastic/ELK)
+- Rotating the logs also results in a gzip
+- End result of protobuf + gzip is more logs per 10M file get stored in less
+  space on disk
+
+---
+
+# Clean Your Logs
+
+```no-highlight
+$ cat docker-compose.yml
+version: '3.7'
+services:
+  app:
+    image: sudobmitch/loggen
+    command: [ "150", "180" ]
+*   logging:
+*     options:
+*       max-size: "10m"
+*       max-file: "3"
+```
+
+???
+
+- In case you don't run containers by hand, you can set these flags in a
+  compose file
+- That's a lot of typing to do per service the compose file. What if we had
+  a dozen services?
+
+---
+
+# Clean Your Logs
+
+```no-highlight
+version: '3.7'
+*x-defaults:
+* service: &default-svc
+    image: sudobmitch/loggen
+    logging: { options: { max-size: "10m", max-file: "3" } }
+services:
+  cat:
+*   <<: *default-svc
+    command: [ "300", "120" ]
+    environment: { pet: "cat" }
+  turtle:
+*   <<: *default-svc
+    labels: { name: "gordon", levels: "all the way down" }
+```
+
+???
+
+- Extension fields in 3.4, the `x-*` at the top level
+- Yaml has an anchor/alias syntax, not docker specific
+  - `&name` is an anchor, sets a variable
+  - `*name` is an alias, uses variable
+  - `<<` merges keys from the alias with custom keys for service
+- Useful for DRY yml files, eliminate repetition, K8s labels and selectors
+- I don't use this at all for logging, instead...
+
+---
+
+# Clean Your Logs
+
+- Best option to prevent container logs from filling disk space
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "log-driver": "local",
+  "log-opts": {"max-size": "10m", "max-file": "3"}
+}
+
+$ systemctl reload docker
+```
+
+???
+
+- We can change the default in the /etc/daemon.json file
+- Does not effect already created containers
+- Can be overridden per container
+- Docker engine does need to be reloaded to take effect
+
+---
+template: picture
+
+.pic-80[![D4M Advanced Prefs](img/d4m-prefs-daemon-adv.png)]
+
+???
+
+- Every time I mention daemon.json, this applies to desktop users too
+- Here's the option for Mac, Daemon -> Advanced
+
+---
+
+template: picture
+
+.pic-80[![D4W Advanced Prefs](img/d4w-settings-daemon-advanced.png)]
+
+???
+
+- And windows users have the same option, Daemon -> Advanced
+
+---
+
+template: impact
+
+.content[
+# Networking
+]
+
+???
+
+- Lets talk about networking
+- Now that the hard drives aren't filling up, the ops dept is out of a job,
+  who's hiring? J/K, different networking
+- Not the hallway track networking either, I'll be there at 5pm
+- Instead, lets talk about...
+
+---
+name: address-pools
+
+# Subnet Collisions
+
+- Docker networks sometimes conflict with other networks
+
+???
+
+Time: 10:00
+- When docker picks a free network, sometimes we find ourselves needing to use
+  that same network in the future
+- Laptops moving from home, office, VPN, coffee shop
+- Production gets connected to the DB after passing compliance checks
+- When docker uses the same network, containers cannot communicate out, they
+  route to themselves
+
+---
+
+# Subnet Collisions
+
+- Docker networks sometimes conflict with other networks
+- BIP, bridge network named "bridge"
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "bip": "10.15.0.1/24"
+}
+```
+
+???
+- The "bip" controls the default bridge network named "bridge"
+- Containers run without a network setting use this
+- IP address is used as the gateway, so pick a valid IP, not .0
+- This doesn't solve user created bridge networks, or docker-compose...
+
+---
+
+# Subnet Collisions
+
+- Default address poll added in 18.06
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "bip": "10.15.0.1/24",
+  "default-address-pools": [
+    {"base": "10.20.0.0/16", "size": 24},
+    {"base": "10.40.0.0/16", "size": 24}
+  ]
+}
+```
+
+???
+- Added in 18.06
+- The default address pool controls new networks you create dynamically
+- Without this you'd need to manage the subnets yourself
+- Solves the issue for all bridge networks, we need something else for overlay...
+
+---
+
+# Subnet Collisions
+
+```no-highlight
+$ docker swarm init --help
+...
+  --default-addr-pool ipNetSlice
+  --default-addr-pool-mask-length uint32
+```
+
+???
+- Swarm mode has these options when you init the swarm
+- This was just added in 18.09
+
+--
+
+```no-highlight
+$ docker swarm init \
+  --default-addr-pool 10.20.0.0/16 \
+  --default-addr-pool 10.40.0.0/16 \
+  --default-addr-pool-mask-length 24
+```
+
+???
+- To set more than one pool, pass the flag multiple times
+- Only on `init` no option for `docker swarm update` yet
+
+---
+name: netshoot
+
+# Network Debugging
+
+- Debugging networks from the host doesn't see inside the container namespace
+- Debugging inside the container means installing tools inside that container
+
+???
+Time: 13:00
+- We've fixed collisions, how do we debug networking to our apps?
+- Running on the host doesn't give the container's view
+- Not every image has the tools we want to run
+
+--
+- Sidecars aren't just for Kubernetes
+
+???
+- K8s people do this with pod networking and sidecars
+- K8s is using features that already exists in docker
+
+---
+template: terminal
+
+<asciinema-player src="code-netshoot.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+
+???
+
+- Lets start an nginx container and debug it
+- `--net container:` and name or id
+- `ss` is the replacement for `netstat`, can see port 80 from nginx
+- Nicolaka, Nicola Kabar, Docker employee
+- Network troubleshooting image full of useful tools
+- We can do more than just `ss`, here's an example of tcpdump
+- Can see the packets when the hit the container, instead of the host
+- Running in the same networking namespace
+
+---
+
+# Network Debugging
+
+```no-highlight
+$ docker run --name web -p 9999:80 -d nginx
+
+*$ docker run -it --rm --net container:web \
+    nicolaka/netshoot ss -lnt
+State     Recv-Q Send-Q Local  Address:Port    Peer Address:Port
+LISTEN    0      128           *:80            *:*
+```
+
+???
+
+- No need to modify our app image
+- Our app container can already be running
+- Same network namespace is like running two processes on the host
+- Could also ping, curl, nslookup, etc
+
+---
+
+name: layers
+template: impact
+
+.content[
+# Layered Filesystem
+]
+
+???
+
+Time: 15:00
+- The layered filesystem in docker is a black box to many
+
+---
+
+template: terminal
+class: center
+
+<asciinema-player src="code-layer1.cast" cols=100 rows=26 preload=false font-size=17></asciinema-player>
+
+???
+Step 1: layers as hashes
+- Lets build golang-hello, all the steps are cached for speed
+- Inspect base image and hello, comparing ".RootFS.Layers"
+- Every golang base layer is in golang-hello, "fb" to "3c"
+- Pointers to the same bytes on disk, docker doesn't make copies
+- Multiple images can use the same parent, so images are immutable
+- Immutable means we extend or replace, never alter
+- But what's inside of each of these layers?
+
+---
+
+template: terminal
+class: center
+
+<asciinema-player src="code-layer2.cast" cols=100 rows=26 preload=false font-size=17></asciinema-player>
+???
+Step 2: image history
+- `docker image history` shows commands, time, and size
+- Bottom (oldest) up is debian, golang, and our hello
+- We see "go build" adds 48 MB, why?
+- "chmod" and "chown" each add 9 MB, for a bit flip?
+- "rm" command is not negative, does it save space?
+- Lets dig deeper...
+
+---
+
+# Understanding Layers
+
+```no-highlight
+$ docker image build --rm=false --no-cache .
+$ docker container diff ...
+```
+
+???
+- There are tools like "dive" to show files per layer
+- We can do this with docker commands
+- Lets run build with `--rm=false` to leave temp containers
+- And `--no-cache` to force each step to run
+- Then look at the `diff` for each temp container
+- Diff shows container specific filesystem, delta from image
+
+---
+
+template: terminal
+class: center
+
+<asciinema-player src="code-layer3.cast" cols=100 rows=26 preload=false font-size=17></asciinema-player>
+???
+Step 3: container diff
+- Already did the build, won't see "removing intermediate container"
+- Examine `go build` with the 48 MB, see cache files
+- Diff shows a character before the filename, A for adds
+- `chown` shows C for change of the file, copy-on-write
+- `rm` shows a D for delete, applies change when layers are assembled, still
+  in previous layers on disk and registry
+- I call this Dockerfile "bad" for a reason...
+---
+
+# Understanding Layers
+
+- Delete temporary file in the same step where they are created
+- Small changes to big files are big changes
+- Merge your `RUN` commands together
+
+???
+- Delete temp files in same step, else they are in the layer
+- "chmod" and "chown" only flip a bit, but copy entire file
+- Merging RUN commands prevent temp files being written, and changes triggering
+  a copy
+- diff looks at mode, uid, gid, rdev
+- If not a directory, diff also checks: mtime and size
+- Before 18.06, `chmod` and `chown` would always CoW
+
+---
+
+# From Bad ...
+
+```no-highlight
+FROM golang:1.11
+RUN adduser --disabled-password --gecos appuser appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+WORKDIR /
+RUN cp /src/app /app
+RUN chown appuser /app
+RUN chmod 755 /app
+RUN rm -r /src
+USER appuser
+CMD /app
+```
+???
+- Fixing this bad Dockerfile looks like...
+
+---
+
+# ... to Okay
+
+```no-highlight
+FROM golang:1.11
+RUN adduser --disabled-password --gecos appuser appuser
+COPY . /src/
+RUN cd /src \
+ && go build -o app . \
+ && cd / \
+ && cp /src/app /app \
+ && chown appuser /app \
+ && chmod 755 /app \
+ && rm -r /go/pkg /root/.cache/go-build /src
+USER appuser
+CMD /app
+```
+
+???
+- Chain the RUN commands, "chown" and "rm" in same RUN
+- The `\` continues the RUN to the next line
+- The `&&` is shell syntax to "stop on any error"
+- We added the Go cache directories we discovered in the diff
+- But now we have less cache reuse, 1 change reruns all cmds
+- Builds may be slower
+
+---
+
+# Multi-stage Builds
+
+- Everything we learned about making efficient images is now wrong
+- Build stage splits RUN lines to maximize caching
+- Only the released stage needs to be layer efficient
+
+???
+Time: 21:00
+- Multi-stage changes everything because we don't ship most stages
+- Leave temp files, and split RUN commands, for caching
+- Ship/release minimal runtime, without compiler
+- Copy artifact from build stage to release stage
+- Multi-stage gives control of CI back to Devs, they define the build
+  environment as an image, rather than a build server managed by Ops
+
+---
+
+```no-highlight
+FROM golang:1.11-alpine as build
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+RUN CGO_ENABLED=0 go build -o app .
+
+FROM scratch as release
+COPY --from=build /etc/passwd /etc/group /etc/
+COPY --from=build /src/app /app
+USER appuser
+CMD [ "/app" ]
+
+FROM alpine as dev
+COPY --from=build /src/app /app
+CMD [ "/app" ]
+
+FROM release
+```
+
+???
+- One FROM per stage
+- Build stage with compiler, no need to cleanup Go cache
+- Release stage with scratch since we statically compiled
+- Scratch is nothing, think `rm -rf /` or `format c:`
+- Developers can have a stage with their tools
+- Often see a unit test stage, or security scanning
+- Last stage makes the result of the release stage the default
+
+---
+
+template: terminal
+class: center
+
+<asciinema-player src="code-layer6.cast" cols=100 rows=26 preload=false font-size=17></asciinema-player>
+
+???
+Step 6: multi-stage
+- Run multi-stage build, down to 9 MB from 833 MB start
+- v2 is chained RUN at 766 MB, base of 757 MB, 9 MB delta
+- We've removed the compiler from our release
+- v3 is alpine at 335 MB, base of 311 MB
+- History for scratch is empty, only our new layers
+- With Java go from JDK to JRE. Static website? Nginx.
+- So everyone should use multi-stage...
+
+---
+
+template: inverse
+
+.content[
+# "Hold my beer."<br><br> --BuildKit
+]
+
+???
+- BuildKit did a one-up Multi-stage
+
+---
+name: buildkit
+
+# BuildKit Features For Everyone
+
+- GA in Docker 18.09
+- Context only pulls needed files
+- Multi-stage builds use a dependency graph
+- Cache from a remote registry
+- Pruning has options for cache age and size to keep
+
+???
+
+Time: 25:30
+- Context only pulls directories you ADD or COPY
+- Context is like an rsync from previous builds,
+  think of one file change from large source repo
+- Dependency graph skips unused stages, like dev, or unit test
+- Cache from registry in ephemeral build env (cloud)
+- Pruning is ideal for long running build servers...
+
+---
+
+# BuildKit Cache Pruning
+
+```no-highlight
+$ docker builder prune --keep-storage=1GB --filter until=72h
+```
+
+???
+- Until: how long cache entries have been unused
+- Keep entries that match either
+
+--
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{
+  "builder": {
+    "gc": {
+      "enabled": true,
+      "policy": [
+        {"keepStorage": "512MB", "filter": ["unused-for=168h"]]},
+        {"keepStorage": "30GB", "all": true}
+      ]
+} } }
+```
+
+???
+- Automatic GC with daemon.json
+- Multple policies allowed
+- Runs after every build, at least 1 min between GC's
+
+---
+
+# BuildKit Experimental Features
+
+- Frontend parser can be changed
+- Bind Mounts, from build context or another image
+- Cache Mounts, similar to a named volume
+- Tmpfs Mounts
+- Build Secrets, file never written to image filesystem
+- SSH Agent, private Git repos
+
+???
+
+- Dockerfile parser is an image, set per Dockerfile
+- Mount per RUN, like a volume, does not change image
+- Bind: to context or image, use case: Aqua microscanner
+- Cache: Maven m2, Golang cache, apt deb, like named volume
+- Secrets: ssh key, aws creds, private git repos
+- SSH: if your key is password protected, uses ssh-agent
+
+---
+
+```no-highlight
+*# syntax=docker/dockerfile:experimental
+
+FROM golang:1.11-alpine as build
+RUN  apk add --no-cache git ca-certificates tzdata
+RUN  adduser -D appuser
+WORKDIR /src
+COPY . /src/
+*RUN  --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
+*    --mount=type=cache,id=goroot,target=/root/.cache/go-build \
+     CGO_ENABLED=0 go build -o app .
+USER appuser
+CMD ./app
+```
+
+???
+
+- First line is not a comment, parser directive
+- Changes buildkit frontend to use experimental image
+- `RUN --mount` means this is not backwards compatible
+- By caching these directories, we can make our builds faster
+
+---
+template: terminal
+<asciinema-player src="code-buildkit.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+
+- Compare previous multi-stage up to to this BuildKit
+- Already run one build so the cache has been populated
+- Env variable shows top is classic build
+- BuildKit on bottom has verbose output enabled
+- Env variable shows BuildKit enabled on bottom
+- Change a mod version, child dependencies are same
+- BuildKit is extracting from cache while classic downloads again
+
+---
+
+# Enable BuildKit
+
+```no-highlight
+$ export DOCKER_BUILDKIT=1
+$ docker build -t your_image .
+```
+???
+- 18.09: Enable in a single shell by setting environment variable
+
+--
+
+```no-highlight
+$ cat /etc/docker/daemon.json
+{ "features": {"buildkit": true} }
+```
+
+???
+- Or to make BuildKit the new default in daemon.json
+- Disable by setting variable to 0
+- docker-compose support still being worked on
+- context and cache pruning are worth upgrade even w/o experimental
+
+---
+
+template: impact
+
+.content[
+# Volumes
+]
+
+???
+Time: 32:00
+
+---
+name: volume-local
+
+# Local Volume Driver
+
+.center[.pic-80[![Docker Volume Create Example](img/docker-vol-create-ex.png)]]
+
+???
+
+- Local volume driver doesn't get enough love
+- Docs show how you can do an NFS mount w/o 3rd party drivers
+
+---
+
+# NFS Mounts
+
+```no-highlight
+$ docker volume create \
+    --driver local \
+    --opt type=nfs \
+    --opt o=nfsvers=4,addr=nfs.example.com,rw \
+    --opt device=:/path/on/server \
+    foo
+```
+
+???
+
+- Here's the NFS command from the docs
+- Driver is local (default, being explicit)
+- type, o, and device all go to the mount syscall
+- The o flag has the nfs version, host, and rw/ro option
+- Device usually has the ip:/remote/path, mount cmd moves ip to addr for syscall
+- Note: remote directory must exist
+- Lets do this in a compose file...
+
+---
+
+# NFS Mounts
+
+```no-highlight
+version: '3.7'
+volumes:
+  nfs-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: nfsvers=4,addr=nfs.example.com,rw
+      device: ":/path/to/dir"
+services:
+  app:
+    volumes:
+      - nfs-data:/data
+...
+```
+
+???
+- Compose is a direct mapping from the volume create cmd
+- In swarm, we can have HA services with persistent data
+- Note in AWS, EFS is NFS
+- What else can we mount?...
+
+---
+
+# Other Filesystem Mounts
+
+```no-highlight
+version: '3.7'
+volumes:
+  ext-data:
+    driver: local
+    driver_opts:
+      type: ext4
+      o: ro
+      device: "/dev/sdb1"
+services:
+  app:
+    volumes:
+      - ext-data:/data
+...
+```
+???
+- Mount a block device (EBS) directly into the container
+- Options let you make it read-only
+
+---
+
+# Overlay Filesystem as a Volume
+
+```no-highlight
+version: '3.7'
+volumes:
+  overlay-data:
+    driver: local
+    driver_opts:
+      type: overlay
+      device: overlay
+      o: lowerdir=${PWD}/data2:${PWD}/data1,\
+         upperdir=${PWD}/upper,workdir=${PWD}/workdir
+services:
+  app:
+    volumes:
+      - overlay-data:/data
+...
+```
+???
+- Overlay for a volume, this is how docker makes containers
+- `o` is one long line, split for slides
+- lowerdir is the same as docker image layers, RO
+- upperdir is where RW changes go, can be unique per volume
+  - like container RW layer
+- workdir is a temp directory, must be empty
+- Useful for CI to RW a data set, concurrently, and reset per run
+
+---
+name: volume-bind
+
+# Named Bind Mount
+
+```no-highlight
+version: '3.7'
+volumes:
+  bind-vol:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/user/host-dir
+services:
+  app:
+    volumes:
+      - "bind-vol:/container-dir"
+      - "./code:/code"
+...
+```
+???
+- Similar to host mount, "code" on the last line
+- The bind mount gives us initialization
+  - host-dir will be initialized with container-dir contents
+  - Includes owner and permissions from image filesystem
+- Allows us to store data outside of /var/lib/docker/volumes
+- Useful for extraction if developer pulls image w/o git repo clone
+
+---
+
+template: inverse
+
+# That's nice, but I just use:<br> $(pwd)/code:/code<br><br>
+
+???
+
+Time: 35:00
+- Devs are usually going the other way, rapid dev workflow
+- Inject source into container to avoid rebuilding image
+- Let me stop you there, don't run that...
+
+---
+
+template: inverse
+
+# That's nice, but I just use:<br> ~~$(pwd)/code:/code~~ <br> "$(pwd)/code:/code"
+
+???
+- Always quote the pwd command, the path may contain a space
+
+---
+name: fix-perms
+
+# Dockerfile for Java
+
+```no-highlight
+# syntax=docker/dockerfile:experimental
+FROM openjdk:jdk as build
+RUN  apt-get update \
+ &&  apt-get install -y maven \
+ &&  useradd -m app
+COPY code /code
+RUN  --mount=target=/home/app/.m2,type=cache \
+     mvn build
+CMD ["java", "-jar", "/code/app.jar"]
+USER app
+
+FROM openjdk:jre as release
+COPY --from=build /code/app.jar /app.jar
+CMD ["java", "-jar", "/app.jar"]
+```
+
+???
+
+- Lets take a Java example, with BuildKit and Multi-stage
+- Install maven, setup a container user (don't run as root)
+- Release is compressed for the slides, app user there too
+- Devs want to build and test faster...
+
+---
+
+# Developer Compose File
+
+```
+version: '3.7'
+volumes:
+  m2:
+services:
+  app:
+    build:
+      context: .
+*     target: build
+    image: registry:5000/app/app:dev
+*   command: "/bin/sh -c 'mvn build && java -jar /code/app.jar'"
+    volumes:
+*   - m2:/home/app/.m2
+*   - ./code:/code
+```
+???
+- Devs create their own compose file for rapid dev
+- Devs build the "build" stage with jdk and maven
+- Change command to run "mvn build" every time we restart
+- Cache m2 for speed
+- And there's our code volume mount at the end
+- And when the developer runs that, they get...
+
+---
+
+# Problem with the Developer Workflow
+
+```no-highlight
+Error accessing /code: permission denied
+```
+
+--
+- UID for `app` inside the container doesn't match our UID on the host
+
+???
+- Bind mounts happen at UID level, no mapping, no username lookup
+- Other users on your laptop cannot write to your home directory
+- When the host and container UID do not match, permission denied
+
+--
+- Unless you're on MacOS or VirtualBox
+
+???
+- D4M has OSXFS, VirtualBox is similar, maps uids automatically
+- Fix needed for Windows, Linux, docker.sock (not on host)
+
+---
+
+# Fixing UID/GID
+
+Possible solutions:
+- Run everything as root
+- Change permissions to 777
+- Adjust each developers uid/gid to match image
+- Adjust image uid/gid to match developers
+- Change the container uid/gid from `run` or `compose`
+
+???
+- There's an error on this slide...
+
+---
+
+# Fixing UID/GID
+
+Possible **bad** solutions:
+- Run everything as root
+- Change permissions to 777
+- Adjust each developers uid/gid to match image
+- Adjust image uid/gid to match developers
+- Change the container uid/gid from `run` or `compose`
+
+???
+- Root or 777 = visit from sec dept, not the DevSecOps you want
+- Devs like to be unique, stickers, won't get common uid/gid
+- Adjust image = build per dev
+- Changing uid/gid at run time, after build, breaks files in image
+
+--
+
+Another solution:
+- "Use a shell script" - Some Ops Guy
+
+---
+
+template: inverse
+
+# Disclaimer
+
+The following slide may not be suitable for all audiences
+
+???
+- Those developers that are disturbed by shell scripts may want to turn away
+  for this next slide
+---
+
+# Fixing UID/GID: fix-perms
+
+```no-highlight
+# update the uid
+if [ -n "$opt_u" ]; then
+* OLD_UID=$(getent passwd "${opt_u}" | cut -f3 -d:)
+* NEW_UID=$(stat -c "%u" "$1")
+  if [ "$OLD_UID" != "$NEW_UID" ]; then
+    echo "Changing UID of $opt_u from $OLD_UID to $NEW_UID"
+*   usermod -u "$NEW_UID" -o "$opt_u"
+    if [ -n "$opt_r" ]; then
+*     find / -xdev -user "$OLD_UID" -exec chown -h "$opt_u" {} \;
+    fi
+  fi
+fi
+```
+???
+- Run `fix-perms` inside the image as part of the entrypoint
+- `OLD_UID` is from user created in the image
+- `NEW_UID` is from the volume we mount inside the container
+- When they don't match, `usermod`
+  - **change container user to match host**
+  - Container dynamically updates for each developer
+- The `find` command fixes the owner on any files in the image
+
+---
+
+# Fixing UID/GID: Dockerfile
+
+```no-highlight
+# syntax=docker/dockerfile:experimental
+FROM openjdk:jdk as build
+*COPY --from=sudobmitch/base:scratch / /
+RUN  apt-get update \
+ &&  apt-get install -y maven \
+ &&  useradd -m app
+COPY code /code
+RUN  --mount=target=/home/app/.m2,type=cache \
+     mvn build
+*COPY entrypoint.sh /usr/bin/
+*ENTRYPOINT ["/usr/bin/entrypoint.sh"]
+CMD ["java", "-jar", "/code/app.jar"]
+USER app
+```
+???
+- Dockerfile needs a few additions
+- Inject `fix-perms` script from a base image with `COPY`
+- Add an entrypoint script to call `fix-perms`
+
+---
+
+# Fixing UID/GID: entrypoint.sh
+
+```no-highlight
+#!/bin/sh
+if [ "$(id -u)" = "0" ]; then
+  # running on a developer laptop as root
+  fix-perms -r -u app -g app /code
+  exec gosu app "$@"
+else
+  # running in production as a user
+  exec "$@"
+fi
+```
+???
+- Entrypoint calls fix perms if root (needed for usermod)
+- Both call `exec "$@"` to replace shell script with cmd as pid 1
+- Dev adds `gosu`, like `su` but with exec to avoid su as pid 1
+- **In both scenarios, CMD is running as pid 1 as app user**
+
+---
+
+# Fixing UID/GID: Developer Compose File
+
+```no-highlight
+version: '3.7'
+volumes:
+  m2:
+services:
+  app:
+    build:
+      context: .
+      target: build
+    image: registry:5000/app/app:dev
+    command: "/bin/sh -c 'mvn build && java -jar /code/app.jar'"
+*   user: "0:0"
+    volumes:
+    - m2:/home/app/.m2
+    - ./code:/code
+```
+???
+- The developer compose file now sets user to root
+- Production compose file is simpler...
+
+---
+
+# Fixing UID/GID: Production Compose File
+
+```no-highlight
+version: '3.7'
+services:
+  app:
+    image: registry:5000/app/app:${build_num}
+```
+???
+- Not root, no volumes, cmd from image, using release stage
+- Release stage has JRE instead of JDK
+- Build runs from CI/CD, and we just deploy the build number
+- Developers can use this for anything they aren't testing
+---
+
+# Fixing UID/GID: Recap
+
+Developers:
+- Mount code as from the host
+- Container starts entrypoint as root
+- Entrypoint changes uid of `app` user to match uid of `/code`
+- Entrypoint switches from root to app
+- Pid 1 is the app with a uid matching the host
+- Reads and writes to `/code` happen as the developers uid
+
+Production:
+- Runs without root or a volume
+- Entrypoint skips `fix-perms` and `gosu`
+
+---
+
+layout: false
+class: title
+name: thanks
+
+# Thank You
+
+- Rate this session in the DockerCon App
+- github.com/sudo-bmitch/presentations
+- github.com/sudo-bmitch/docker-base
+
+.content[
+.left-column[
+.pic-80[![Slides QR](img/github-qr.png)]
+]
+.right-column[.align-right[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+???
+- If you liked this session, please rate it
+- If we have time for questions, please use a mic
+- If you missed a picture of any slide, they are on github
+  - PR's to fix my typos or the asciinema player are welcome
+- Docker-base contains the fix-perms script and more
+- My hallway track is at 5pm, building efficient images
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+

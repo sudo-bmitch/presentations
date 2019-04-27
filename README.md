@@ -2,7 +2,8 @@
 
 These slides are made with RemarkJS and should be viewable in any browser. From
 the desktop, you can press "P" to see presenter notes. PDF's have also been
-included.
+included when possible. For the slides with a live terminal, use "W" and "E" to
+pause/play the recording.
 
 ## DC2018 - Frequently Asked Queries from StackOverflow
 
