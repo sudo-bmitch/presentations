@@ -9,6 +9,25 @@ h1, h2, h3 {
 code {
   font-family: 'Roboto Mono', monospace;
 }
+a:link {
+  color:inherit;
+}
+a:visited {
+  color:inherit;
+}
+/* make the notes larger */
+.remark-presenter-mode .remark-notes-area {
+  font-size: 24px; 
+  left: 40%;
+}
+.remark-container.remark-presenter-mode .remark-slides-area {
+  height: 38%;
+  width: 38%;
+}
+.remark-container.remark-presenter-mode .remark-preview-area {
+  height: 38%;
+  width: 38%;
+}
 .remark-slide-content {
   font-size: 25px; 
   background-image: url('img/bg-white-simple.png');
