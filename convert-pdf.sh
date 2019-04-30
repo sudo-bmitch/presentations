@@ -1,7 +1,5 @@
 #!/bin/sh
 
-cd $(dirname $0)
-
 htmlfile=${1:-faq-stackoverflow.html}
 if [ $# -gt 1 ]; then
   pdffile=$2
@@ -21,5 +19,5 @@ if [ -f "$pdffile" ]; then
   esac
 fi
 
-docker run --rm -t -u "$(id -u):$(id -g)" -v "$(pwd):/host" astefanutti/decktape "/host/$htmlfile" "/host/$pdffile"
+docker run --rm -it -u "$(id -u):$(id -g)" -v "$HOME:$HOME" -w "$(pwd)" astefanutti/decktape "$htmlfile" "$pdffile"
 
