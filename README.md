@@ -36,6 +36,7 @@ There was also a webinar given based on the above talk. Slides are almost identi
 ## DC2019 - Tips and Tricks From The Docker Captains
 
 - [Original presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.pdf)]
 
 - [Extended presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains-extended.html)
 

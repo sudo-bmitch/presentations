@@ -1090,27 +1090,26 @@ name: fix-perms
 # Dockerfile for Java
 
 ```no-highlight
-# syntax=docker/dockerfile:experimental
 FROM openjdk:jdk as build
 RUN  apt-get update \
  &&  apt-get install -y maven \
  &&  useradd -m app
 COPY code /code
-RUN  --mount=target=/home/app/.m2,type=cache \
-     mvn build
+RUN  mvn build
 CMD ["java", "-jar", "/code/app.jar"]
 USER app
 
 FROM openjdk:jre as release
+RUN  useradd -m app
 COPY --from=build /code/app.jar /app.jar
 CMD ["java", "-jar", "/app.jar"]
+USER app
 ```
 
 ???
 
-- Lets take a Java example, with BuildKit and Multi-stage
+- Lets take a Java example, Multi-stage
 - Install maven, setup a container user (don't run as root)
-- Release is compressed for the slides, app user there too
 - Devs want to build and test faster...
 
 ---
@@ -1242,15 +1241,13 @@ fi
 # Fixing UID/GID: Dockerfile
 
 ```no-highlight
-# syntax=docker/dockerfile:experimental
 FROM openjdk:jdk as build
 *COPY --from=sudobmitch/base:scratch / /
 RUN  apt-get update \
  &&  apt-get install -y maven \
  &&  useradd -m app
 COPY code /code
-RUN  --mount=target=/home/app/.m2,type=cache \
-     mvn build
+RUN  mvn build
 *COPY entrypoint.sh /usr/bin/
 *ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 CMD ["java", "-jar", "/code/app.jar"]

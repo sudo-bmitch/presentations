@@ -1,6 +1,7 @@
 # DC2019 - Tips and Tricks of the Docker Captains
 
 - [Original presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.pdf)]
 - [Extended presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains-extended.html)
 
 This talk is from DockerCon 2019 in San Francisco and is a continuation on the
