@@ -5,13 +5,22 @@ the desktop, you can press "P" to see presenter notes. PDF's have also been
 included when possible. For the slides with a live terminal, use "W" and "E" to
 pause/play the recording.
 
-## DC2018 - Frequently Asked Queries from StackOverflow
+## Docker Build
 
-- [Full presentation](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.html)
-  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.pdf)]
+Covering multi-stage, Build-kit, Buildx, and multi architecture images.
 
-- [Lightning talk](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.html)
-  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.pdf)]
+- [Presentation](https://sudo-bmitch.github.io/presentations/docker-build/presentation.html)
+
+## DC2019 - Tips and Tricks From The Docker Captains
+
+- [Original presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.pdf)]
+
+- [Extended presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains-extended.html)
+
+## BSides NoVA - Containing Security Vulnerabilities with Containers
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/bsides-nova/presentation.html)
 
 ## DC2018 EU - Tips and Tricks From A Docker Captain
 
@@ -29,16 +38,13 @@ from DockerCon 2018 in San Francisco](https://drive.google.com/file/d/1RBAl2PfTn
 There was also a webinar given based on the above talk. Slides are almost identical to those above:
 - [Webinar presentation](https://sudo-bmitch.github.io/presentations-webinar-20181212/dc2018eu/tips-and-tricks-of-the-captains.html)
 
-## BSides NoVA - Containing Security Vulnerabilities with Containers
+## DC2018 - Frequently Asked Queries from StackOverflow
 
-- [Presentation](https://sudo-bmitch.github.io/presentations/bsides-nova/presentation.html)
+- [Full presentation](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.pdf)]
 
-## DC2019 - Tips and Tricks From The Docker Captains
-
-- [Original presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.html)
-  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.pdf)]
-
-- [Extended presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains-extended.html)
+- [Lightning talk](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.pdf)]
 
 ## License
 
