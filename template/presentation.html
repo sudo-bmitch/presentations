@@ -14,21 +14,52 @@
   <body>
     <textarea id="source">
 
+name: empty
+layout: true
+---
+name: base
+layout: true
+template: empty
+background-image: none
+<div class="slide-footer">@sudo_bmitch</div>
+---
+name: title
+layout: true
+template: empty
+class: center, middle
+background-image: none
+---
 name: inverse
 layout: true
+template: base
 class: center, middle, inverse
+background-image: none
 ---
 name: impact
 layout: true
+template: base
 class: center, middle, impact
+background-image: none
 ---
-name: centered
+name: picture
 layout: true
+template: base
 class: center, middle
+background-image: none
 ---
 name: terminal
 layout: true
+template: base
 class: center, middle, terminal
+background-image: none
+---
+name: default
+layout: true
+template: base
+---
+layout: false
+template: impact
+name: agenda
 ---
 layout: false
 template: impact
@@ -124,7 +155,7 @@ template: terminal
 name: topic-2
 class: center
 
-<asciinema-player src="file.cast" cols=90 rows=24 preload=true font-size=18></asciinema-player>
+<asciinema-player src="file.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ---
 
