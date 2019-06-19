@@ -208,7 +208,7 @@ What this doesn't clean by default:
 
 ```no-highlight
 $ docker run -d --restart=unless-stopped --name cleanup \
-    -v /var/run/docker.sock:/var/run/docker.sock
+    -v /var/run/docker.sock:/var/run/docker.sock \
     docker /bin/sh -c \
     "while true; do docker system prune -f; sleep 1h; done"
 ```
