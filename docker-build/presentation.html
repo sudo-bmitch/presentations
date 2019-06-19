@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Presentation - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+name: empty
+layout: true
+---
+name: base
+layout: true
+template: empty
+background-image: none
+<div class="slide-footer">@sudo_bmitch</div>
+---
+name: ttitle
+layout: true
+template: empty
+class: center, middle
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: inverse
+layout: true
+template: base
+class: center, middle, inverse
+background-image: none
+---
+name: impact
+layout: true
+template: base
+class: middle, impact
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: picture
+layout: true
+template: base
+class: center, middle
+background-image: none
+---
+name: code
+layout: true
+template: base
+class: terminal
+background-image: none
+---
+name: terminal
+layout: true
+template: base
+class: center, middle, terminal
+background-image: none
+---
+name: default
+layout: true
+template: base
+class: bg-blur
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+layout: false
+template: default
+name: agenda
+
+# Agenda
+
+.left-column[
+- [Docker Intro](#docker-intro)
+- [Build w/o Docker](#build-wo-docker)
+- [Debian Base](#debian)
+- [Alpine Base](#alpine)
+]
+.right-column[
+- [Multi-stage](#multi-stage)
+- [Dev Workflow](#dev-workflow)
+- [BuildKit](#buildkit)
+- [Buildx](#buildx)
+]
+
+---
+layout: false
+template: ttitle
+name: title
+
+# Building Docker Images
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.v-align-mid[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+???
+- My twitter and github handles are what any self respecting sysadmin does
+  when you get a permission denied error on your favorite username.
+- This presentation is on github and I'll have a link to it at the end,
+---
+template: default
+
+```no-highlight
+$ whoami
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+---
+
+name: docker-intro
+template: inverse
+
+# What is Docker?
+
+???
+
+- First a quick level set for anyone that doesn't already know Docker
+- Who's already using Docker?
+
+---
+
+# What is Docker?
+
+- App vs OS isolation
+  - Shared kernel vs shared hardware
+- Kernel namespaces
+  - Mount, PID, Network, User, UTS, IPC
+- Package and Ship Images
+  - Filesystem + metadata
+- Run Images as Containers
+  - Running process with some settings
+
+???
+
+- Most namespaces (except for filesystem) can be adjusted
+- Mount for filesystems
+- UTS is for the hostname
+- IPC for inter process comm
+
+---
+
+# Image Filesystem Layers
+
+- Filesystems are packaged in layers, diff on previous filesystem state
+- Layers are read-only once created
+- Images may share layers
+- Containers merge the read-only image layers plus a read-write container layer
+- Write to a container filesystem performs a copy-on-write to read-write layer
+
+---
+
+# Dockerfile
+
+- List of instructions to create an image
+- Each instruction adds a new layer or sets some metadata
+- Start from a known initial state, base image
+
+???
+
+- Starting from a known state is why I like containers vs other CM tools
+- Avoids state drift when you always begin at a known state
+
+---
+
+name: build-wo-docker
+template: inverse
+
+# Where's the Go Code?
+
+???
+
+- This is a Go meetup, let's talk Go
+
+---
+
+template: code
+class: small
+
+# Hello World
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"html/template"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	"runtime"
+)
+
+var (
+	httpAddr   *string
+	serverName *string
+)
+```
+???
+- Sadly, I'm here to learn Go more than to teach it, so you get a hello world
+
+---
+
+template: code
+class: small
+
+# Hello World
+
+```go
+func init() {
+	hostname, _ := os.Hostname()
+	httpAddr = flag.String("http", ":8080", "Listen address")
+	serverName = flag.String("server", hostname, "Server Name")
+}
+
+func main() {
+	flag.Parse()
+	http.HandleFunc("/", root)
+	fmt.Print("Ready to receive requests on port 8080\n")
+	log.Fatal(http.ListenAndServe(*httpAddr, nil))
+}
+
+func root(w http.ResponseWriter, r *http.Request) {
+	path := "unknown"
+	if (len(r.URL.Path) > 1) {
+		path = r.URL.Path[1:]
+	}
+
+```
+???
+- I've got an app listening on port 8080 for http requests
+- I take the URL from those requests
+---
+
+template: code
+class: small
+
+# Hello World
+
+```go
+	data := struct {
+		ServerName, Path, OS, Arch string
+	}{
+		*serverName, path, runtime.GOOS, runtime.GOARCH,
+	}
+	w.Header().Set("Server", "Hello Server")
+	w.WriteHeader(200)
+	err := tmpl.Execute(w, data)
+	if (err != nil) {
+		log.Print(err)
+	}
+}
+
+var tmpl = template.Must(template.New("tmpl").Parse(`
+<!DOCTYPE html><html><body><center>
+	<h2 style="color:blue">Hello {{.Path}} from {{.ServerName}}</h2>
+	<h3>Running on OS: {{.OS}}, Arch: {{.Arch}}</h3>
+</center></body></html>
+`))
+```
+
+???
+And respond with a template that includes
+- URL
+- server name (hostname)
+- OS
+- Arch
+
+---
+
+template: inverse
+
+# Lets Package This In Docker
+
+???
+- So that was a huge let down to the Go devs
+- Maybe I can show you some cool docker stuff instead
+---
+
+template: code
+
+# Dockerfile: External Build
+
+```Dockerfile
+FROM debian:latest
+COPY app /app
+RUN chmod 755 /app
+CMD /app
+```
+???
+- Here's a first attempt at a Dockerfile
+- It assumes we build the app outside of docker
+- The instructions are fairly easy to read
+  - FROM defines a parent image, all images need a starting point
+  - COPY takes a file/dir from the context (build input) and adds it to our image
+  - RUN executes a command inside of a temporary container and saves the changes to the filesystem
+  - CMD is metadata saying how to run this image as a container (default)
+---
+
+template: terminal
+
+<asciinema-player src="demo-external.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+---
+
+template: inverse
+
+# Compile with Docker
+
+???
+- If docker does the compile, we can avoid dependencies on developer machines
+- This also means one app could use a newer version of Go than another, on the same machine
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-byhand.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+- Before I create an image, I like to run commands by hand interactively
+- Makes for faster debugging
+
+---
+
+name: debian
+template: inverse
+
+# Compile During Build
+
+???
+- Lets get to the real world, no one is compiling by hand on the CI server for every check-in
+- Lets take our steps from the by-hand install and make a Dockerfile that does the compile
+
+---
+
+template: code
+
+# Dockerfile: Debian v1
+
+```Dockerfile
+FROM golang:1.12
+RUN adduser --disabled-password --gecos appuser appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+WORKDIR /
+RUN cp /src/app /app
+RUN chown appuser /app
+RUN chmod 755 /app
+RUN rm -r /src
+USER appuser
+CMD /app
+```
+???
+- Here's almost a literal translation to our by-hand steps
+- Ops jumped in and required that we not run stuff as root
+- But before you take notes on this, realize it's version 1 and a horrible example
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-debian1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- Before I get to bad mouthing it too much, lets see that it works
+
+---
+
+template: code
+
+# Dockerfile: Debian v1
+
+```Dockerfile
+FROM golang:1.12
+RUN adduser --disabled-password --gecos appuser appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+WORKDIR /
+RUN cp /src/app /app
+RUN chown appuser /app
+RUN chmod 755 /app
+RUN rm -r /src
+USER appuser
+CMD /app
+```
+???
+- What's wrong with it?
+- We don't cleanup all the go cache
+- Once RUN finishes, those files are in the image and shipped
+
+---
+
+template: code
+
+# Dockerfile: Debian v2
+
+```Dockerfile
+FROM golang:1.12
+RUN adduser --disabled-password --gecos appuser appuser
+COPY . /src/
+*RUN  cd /src \
+* && go build -o app . \
+* && cd / \
+* && cp /src/app /app \
+* && chown appuser /app \
+* && chmod 755 /app \
+* && rm -r /go/pkg /root/.cache/go-build /src
+USER appuser
+*CMD [ "/app" ]
+```
+???
+- So the fix is we chain our RUN commands, 
+  delete files in the same step where they are created
+- This doesn't help with the COPY of /src
+- I also switched CMD to have json syntax, with a string there's an extra shell
+  run that we don't need, it would intercept and block SIGTERM
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-debian2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- So that works
+- And we shrink our image
+- We aren't anywhere near the size of external image, because now we ship a compiler
+- But first, there's an alpine image that's smaller, what if we used that?
+
+---
+
+name: alpine
+template: inverse
+
+# What About Alpine
+
+---
+
+template: code
+
+# Dockerfile: Alpine v1
+
+```Dockerfile
+*FROM golang:1.12-alpine
+*RUN adduser -D appuser
+COPY . /src/
+RUN cd /src \
+ && go build -o app . \
+ && cd / \
+ && cp /src/app /app \
+ && chown appuser /app \
+ && chmod 755 /app \
+ && rm -r /go/pkg /root/.cache/go-build /src
+USER appuser
+CMD [ "/app" ]
+```
+???
+- Not much to change with Alpine, just a different FROM,
+  and the adduser syntax changes
+---
+
+template: terminal
+
+<asciinema-player src="demo-alpine1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+- But when we run that, we don't have git
+- Alpine is smaller because it doesn't include lots of stuff
+
+---
+
+template: code
+
+# Dockerfile: Alpine v2
+
+```Dockerfile
+FROM golang:1.12-alpine
+*RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+COPY . /src/
+RUN cd /src \
+ && go build -o app . \
+ && cd / \
+ && cp /src/app /app \
+ && chown appuser /app \
+ && chmod 755 /app \
+ && rm -r /go/pkg /root/.cache/go-build /src
+USER appuser
+CMD /app
+```
+???
+- So lets install git, and you may also need other packages
+  like certificates if you pull from HTTPS repos
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-alpine2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+- So that works
+- And again, image size goes down, almost all from the smaller base.
+- If you do the math, our code in debian2 (on top of 1.12) is more than alpine2
+  (on top of 1.12-alpine) because we needed to install git
+- But we are still shipping the compiler
+---
+
+name: multi-stage
+template: inverse
+
+# Do we need to ship a compiler with our app?
+
+---
+
+template: impact
+class: center, middle
+
+# No
+
+???
+- I wouldn't ask the question if the answer wasn't "No"
+- Even with languages like Java, we could change from a JDK to a JRE
+
+---
+
+template: code
+
+# Dockerfile: Multi-stage v1
+
+```Dockerfile
+*FROM golang:1.12-alpine as build
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+USER appuser
+CMD [ "/src/app" ]
+
+*FROM scratch as release
+*COPY --from=build /src/app /app
+USER appuser
+CMD [ "/app" ]
+```
+???
+- Multi-stage images have multiple "FROM" lines
+- This builds multiple images, and tags one of them (by default, the last one)
+  - It does not merge multiple images together
+- The key is we can copy files from one stage to another
+- Our CI server now just needs the docker command, devs select their compiler
+  image in the first stage, and minimal runtime in the last stage
+- And for my runtime filesystem, I picked scratch, scrach is what you get when
+  `rm -rf /` finishes
+- There's no shell or libraries to run, so I need that CMD in json, and I need
+  a language like Go that can statically compile the binary
+---
+
+template: terminal
+
+<asciinema-player src="demo-multi-stage1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- So lets run that... and it fails because the user doesn't exist in scratch
+- We only created the user in our build stage, lets fix that in a sysadmin way
+
+---
+
+template: code
+
+# Dockerfile: Multi-stage v2
+
+```Dockerfile
+FROM golang:1.12-alpine as build
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+USER appuser
+CMD [ "/src/app" ]
+
+FROM scratch as release
+*COPY --from=build /etc/passwd /etc/group /etc/
+COPY --from=build /src/app /app
+USER appuser
+CMD [ "/app" ]
+```
+???
+- Copy the /etc/passwd and /etc/group files, which contain all the
+  user and group mappings to UID/GID's
+- I could also copy those Certificates from /etc/ssl if they were needed
+---
+
+template: terminal
+
+<asciinema-player src="demo-multi-stage2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- Lets run that... and we get fail number 2
+- Lets check the logs... wait, where's the container?
+- We ran it with `--rm -d` so the container deletes in the background on exit, lets foreground it
+- No such file or directory? Lets check the container and see why it's missing.
+- And we don't have a /bin/sh in scratch, lets build a new image to debug
+
+---
+
+template: code
+
+# Dockerfile: Multi-stage v3
+
+```Dockerfile
+*FROM golang:1.12-alpine as dev
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+CMD go build -o app . && ./app
+
+*FROM dev as build
+RUN go build -o app .
+USER appuser
+CMD [ "./app" ]
+
+...
+```
+???
+- So first, this will be relevant later, I'm splitting the developer
+  and build stages, dev has the source, build generates the binary
+---
+
+template: code
+
+# Dockerfile: Multi-stage v3
+
+```Dockerfile
+...
+
+FROM scratch as release
+COPY --from=build /etc/passwd /etc/group /etc/
+COPY --from=build /src/app /app
+USER appuser
+CMD [ "/app" ]
+
+*FROM debian as debug
+*COPY --from=build /src/app /app
+*CMD [ "/app" ]
+
+FROM release
+```
+???
+- More importantly, I'm adding a debug stage, using debian instead of scratch
+- And I copy the /app just like I do in release
+---
+
+template: terminal
+
+<asciinema-player src="demo-multi-stage3.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- Lets run that... and woops, a shell needs input or it will exit...
+- See the "no such file or directory" here too, but the file exists, and is executable
+- If you google this, you'll probably find a SO post that I've answered saying
+  to check the linked libraries, and we see the broken link to libc.musl
+- Note, had I picked alpine for my debug image, app would have run just fine
+
+---
+
+template: code
+
+# Dockerfile: Multi-stage v4
+
+```Dockerfile
+FROM golang:1.12-alpine as dev
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+*CMD CGO_ENABLED=0 go build -o app . && ./app
+
+FROM dev as build
+*RUN CGO_ENABLED=0 go build -o app .
+USER appuser
+CMD [ "./app" ]
+
+...
+```
+???
+- The fix for this, that you'd see from the same SO post, is to turn off CGO
+  when you use networking libraries
+---
+
+template: terminal
+
+<asciinema-player src="demo-multi-stage4.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- Lets run that, and this time it works
+- So that was a pain in the butt...
+- But our resulting image is a lot smaller, down to 10M, that will speed up the deploys
+---
+
+name: dev-workflow
+template: inverse
+
+# Developer Workflow
+
+???
+- Remember me splitting the dev and build stages, lets use that to make a better
+  developer workflow, because these builds take time downloading modules
+---
+
+template: terminal
+
+<asciinema-player src="demo-dev-workflow.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+???
+- The dev can run build the dev target to have the full compiler
+- But this time, when running it, I add a bunch of options
+- Volumes for /src and HOME map those directories into the container
+- I'm setting the GOPATH and HOME variables so the go cache gets saved somewhere persistent
+- And I adjust the UID/GID to match my user outside of the container
+- This runs a build every time we start up
+- And to rerun a build, we can just restart the container
+---
+
+template: code
+
+# How I Run Go
+
+```shell
+$ cat ~/bin/go
+#!/bin/sh
+
+GO_VER=${GO_VER:-1.12}
+GO_ORIG=/usr/local/go/bin/go
+
+docker run -it --rm --net host \
+  -u "$(id -u):$(id -g)" -v "$HOME:$HOME" \
+  -e "GOPATH=${HOME}/data/golang" \
+  -e CGO_ENABLED \
+  -e HOME -w "$(pwd)" \
+  golang:${GO_VER} ${GO_ORIG} "$@"
+```
+???
+- All of those variables come from a script that I use for `go`
+- I don't even have go installed directly on my laptop, everything is in containers
+
+---
+
+name: buildkit
+template: inverse
+
+# Our Builds Are Too Slow
+
+???
+- I've been hiding how long these builds take, but every time I run this
+  without a cache, go is downloading from github again
+- We made the images smaller, but can we make them faster?
+
+---
+
+template: picture
+
+![XKCD - Compiling](img/xkcd.303.compiling.png)
+???
+- And yes that's good for office shenanigans
+- But we can speed them up
+
+---
+
+# Why BuildKit
+
+- Build context is cached and only changes are sent
+- Dockerfile is parsed as a dependency graph
+- Steps can be run concurrently
+- Frontend parser can be swapped for new features
+- Build secrets (experimental)
+- Mounts to other images or context (experimental)
+
+---
+
+class: small
+template: code
+
+# Dockerfile: BuildKit v1 (partial)
+
+```Dockerfile
+*# syntax=docker/dockerfile:experimental
+
+FROM golang:1.12-alpine as dev
+COPY . /src/
+
+FROM dev as build
+*RUN --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
+*   --mount=type=cache,id=goroot,target=/root/.cache/go-build \
+*   CGO_ENABLED=0 go build -o app .
+CMD ./app
+
+FROM scratch as release
+COPY --from=build /etc/passwd /etc/group /etc/
+COPY --from=build /src/app /app
+CMD [ "/app" ]
+
+FROM debian as debug
+...
+FROM release
+```
+???
+- Here's a BuildKit modified Dockerfile for speeding up a go build
+- First line changes the frontend parser to enable experimental features
+- The `--mount` option mounts effectively a named volume for that RUN line
+- Directory persists between builds, does not get added to the image
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildkit1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+- Important note, that `--mount` option is not backwards compatible
+- Notice how a buildkit run skips the debug stage,
+  not needed for release stage
+- Good for efficiency, bad for testing, need to inject a hard dependency
+  or manually build specific stages
+- Populate the cache in both multi-stage and buildkit
+- Change a single version number in the go.mod
+- Rerunning both shows buildkit skips the download on most modules
+
+---
+
+name: buildx
+template: inverse
+
+# Buildx? Another Builder?
+
+---
+
+# Buildx
+
+- Orchestration for your build process
+- Layer above BuildKit
+- Supports multiple builders
+- Supports cross platform builds with builders on multiple nodes
+
+---
+
+class: small
+template: code
+
+# Dockerfile: Buildx v1 (partial)
+
+```Dockerfile
+...
+FROM scratch as release
+COPY --from=build /etc/passwd /etc/group /etc/
+COPY --from=build /src/app /app
+USER appuser
+CMD [ "/app" ]
+
+FROM debian as debug
+COPY --from=build /src/app /app
+CMD [ "/app" ]
+
+*FROM scratch as artifact
+*COPY --from=build /src/app /app
+
+FROM release
+```
+???
+- An interesting feature of buildx is to output more than just an image
+- Lets make an artifact stage based on scratch, and copy our "app" binary into it
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildx1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+- Now if I start without an "app" binary in the directory
+- Run a build with the `--output` option
+- Docker showed this for generating protobuf files, dependency for rest of the build
+---
+
+template: inverse
+
+# Multi-Architecture Builds
+
+---
+
+# Multi-Architecture Builds
+
+Three options:
+
+1. Qemu
+2. Configure multiple build nodes
+3. Cross compiling
+
+???
+
+- Qemu is virtualization loaded into the kernel to run binaries for other platforms
+  - Requires binfmt_misc module
+- Multiple build nodes with `docker buildx create ...`
+- Cross compiling works great with Go
+
+---
+
+class: small
+template: code
+
+# Dockerfile: Buildx v2 (partial)
+
+```Dockerfile
+# syntax=docker/dockerfile:experimental
+
+*FROM --platform=$BUILDPLATFORM golang:1.12-alpine as dev
+RUN apk add --no-cache git ca-certificates
+RUN adduser -D appuser
+WORKDIR /src
+COPY . /src/
+CMD CGO_ENABLED=0 go build -o app . && ./app
+
+*FROM --platform=$BUILDPLATFORM dev as build
+*ARG TARGETPLATFORM
+*ARG TARGETOS
+*ARG TARGETARCH
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
+    --mount=type=cache,id=goroot,target=/root/.cache/go-build \
+*   CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+*   go build -ldflags '-w -extldflags -static' -o app .
+CMD ./app
+...
+```
+???
+- This is option 3, cross compile binary on one platform, 
+- The `FROM --platform` flags are needed to pull an image for the build host
+  rather than target platform
+- Docker gives you the TARGETPLATFORM, TARGETOS, and TARGETARCH arguments
+- These options line up nicely with GOOS and GOARCH
+- I added even more flags to ensure a static compile
+- Only use COPY steps to create target platform image as release, that stage is
+  unchanged
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildx2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+
+- First, without buildx, we can build platform specific images
+- If we try to run it, we get a not found error, but this time for another reason
+- Lets mount the qemu binary into the container that the kernel needs
+- Success, we are running ARM64 binaries on an AMD64 system
+- Buildx lets us build all these together into a multi-arch image
+- We do need to push to a registry, local images are a single arch per tag
+- The manifest command shows the two arch's from the remote registry
+- If we run it, docker automatically pulls our local arch
+- We can override the arch, again getting the no such file error
+- Adding the qemu binary for the kernel mod allows this to work, this could also be added to the image
+- Now we see the expect ARM64 output
+
+---
+
+class: small
+template: code
+
+# Smaller Images
+
+```shell
+$ docker image ls golang-hello
+REPOSITORY    TAG                  IMAGE ID       CREATED             SIZE
+golang-hello  buildx-arm64         d1692becb3f8   20 minutes ago      7.69MB
+golang-hello  buildx-amd64         df177135bf4b   21 minutes ago      7.98MB
+golang-hello  buildkit1            7052ce2a5f09   33 minutes ago      9.99MB
+golang-hello  multi-stage4         84dc9e78dd1b   About an hour ago   9.99MB
+golang-hello  multi-stage4-dev     5ea1251753db   About an hour ago   375MB
+golang-hello  multi-stage3-debug   d65226b558f6   About an hour ago   111MB
+golang-hello  multi-stage2         e8d6f4a794cb   About an hour ago   10.1MB
+golang-hello  multi-stage1         f02b6dbc6313   About an hour ago   10.1MB
+golang-hello  alpine2              db656cac628a   2 hours ago         375MB
+golang-hello  debian2              775f11a0b12f   2 hours ago         783MB
+golang-hello  debian1              0a329955d9e5   2 hours ago         846MB
+golang-hello  external             8a986860f72b   2 hours ago         121MB
+```
+???
+- Some of those flags for static compiling or specifying the architecture
+  managed to reduce my image size even more
+- Importantly those smaller images also came with:
+  - repeatable builds not dependent on developer machines
+  - faster builds
+  - portability to other platforms
+---
+
+template: inverse
+
+# Are You Done Yet?
+
+---
+
+template: impact
+class: center, middle
+
+# Pretty Much
+
+---
+
+template: inverse
+
+# Recap
+
+---
+
+# Recap
+
+- Consolidate layers to reduce image size
+- Select a minimal base image
+- Don't ship a compiler if you don't need it
+- Use volumes for a faster developer workflow
+- BuildKit can speed up builds
+- BuildKit can reuse the go cache between builds
+- Buildx makes multi-architecture images easy
+
+---
+
+template: ttitle
+name: thanks
+
+# Thank You
+
+github.com/sudo-bmitch/presentations
+
+.content[
+.left-column[
+.pic-80[![Slides QR](img/github-qr.png)]
+]
+.right-column[.align-right[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+???
+- This presentation is online, you can watch it again
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+

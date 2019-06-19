@@ -1,0 +1,13 @@
+FROM golang:1.12
+RUN adduser --disabled-password --gecos appuser appuser
+WORKDIR /src
+COPY . /src/
+RUN go build -o app .
+WORKDIR /
+RUN cp /src/app /app
+RUN chown appuser /app
+RUN chmod 755 /app
+RUN rm -r /src
+USER appuser
+CMD /app
+
