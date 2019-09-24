@@ -23,11 +23,12 @@ template: empty
 background-image: none
 <div class="slide-footer">@sudo_bmitch</div>
 ---
-name: title
+name: ttitle
 layout: true
 template: empty
 class: center, middle
-background-image: none
+background-image: url(img/containers_bg.png)
+background-size: cover
 ---
 name: inverse
 layout: true
@@ -39,7 +40,8 @@ name: impact
 layout: true
 template: base
 class: center, middle, impact
-background-image: none
+background-image: url(img/containers_bg.png)
+background-size: cover
 ---
 name: picture
 layout: true
@@ -56,13 +58,11 @@ background-image: none
 name: default
 layout: true
 template: base
+background-image: url(img/containers_bg.png)
+background-size: cover
 ---
 layout: false
-template: impact
-name: agenda
----
-layout: false
-template: impact
+template: default
 name: agenda
 
 # Agenda
@@ -82,7 +82,8 @@ name: agenda
 
 ---
 layout: false
-name: title
+name: ttitle
+template: ttitle
 
 # Tips and Tricks<br>From A Docker Captain
 
@@ -101,6 +102,7 @@ name: title
 - This presentation is on github and I'll have a link to it at the end,
   I'll be going fast so don't panic if you miss a slide.
 ---
+template: default
 
 ```no-highlight
 $ whoami

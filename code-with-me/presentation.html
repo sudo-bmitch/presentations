@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Presentation - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+name: empty
+layout: true
+---
+name: base
+layout: true
+template: empty
+background-image: none
+<div class="slide-footer">@sudo_bmitch</div>
+---
+name: ttitle
+layout: true
+template: empty
+class: center, middle
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: inverse
+layout: true
+template: base
+class: center, middle, inverse
+background-image: none
+---
+name: impact
+layout: true
+template: base
+class: center, middle, impact
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: picture
+layout: true
+template: base
+class: center, middle
+background-image: none
+---
+name: terminal
+layout: true
+template: base
+class: center, middle, terminal
+background-image: none
+---
+name: default
+layout: true
+template: base
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+layout: false
+template: default
+name: agenda
+
+# Agenda
+
+.left-column[
+- [Dockerfile](#dockerfile)
+- [docker-compose](#docker-compose)
+]
+.right-column[
+]
+
+---
+layout: false
+name: title
+template: ttitle
+
+# Docker Deep Dive - Code With Me
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.v-align-mid[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+???
+- My twitter and github handles are what any self respecting sysadmin does
+  when you get a permission denied error on your favorite username.
+- This presentation is on github and I'll have a link to it at the end,
+  I'll be going fast so don't panic if you miss a slide.
+
+---
+template: default
+
+```no-highlight
+$ whoami
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+---
+
+name: dockerfile
+template: inverse
+
+# Dockerfile
+
+---
+
+# Dockerfile
+
+- Recipe for creating a docker image
+- Every step builds off the previous state
+  - Set/change metadata
+  - Add a filesystem layer
+
+---
+
+# Dockerfile
+
+- Comments begin the line with a `#`
+- Lines may be continued by appending a `\`
+- Each step begins with a keyword
+
+---
+
+# Dockerfile
+
+- `FROM openjdk:11-jdk`
+- `COPY bin/ /usr/local/bin/`
+- `RUN apk add jq`
+- `CMD ["node"]`
+
+???
+
+- FROM defines our base image
+  - Could say `openjdk:11.0.4-jdk` but may then miss patches like `openjdk:11.0.5-jdk` or `openjdk:11.1-jdk`
+- COPY adds a filesystem layer from the build context
+- RUN uses a temporary container to add a filesystem layer
+  - When the container exits, the only thing saved are container filesystem changes
+  - Not running processes, environment variables, or changes to volumes
+- CMD defines the default action to take when running a container (image metadata)
+
+---
+
+# RUN, ENTRYPOINT, and CMD
+
+- Either string or json syntax
+  - String will use a shell
+  - Json will use OS exec syscall
+- `RUN` is executed during the build
+- `ENTRYPOINT` and `CMD` modify how the container starts
+  - `CMD` is easily overridden
+  - `ENTRYPOINT` commonly performs initialization
+  - Both: `ENTRYPOINT` run with `CMD` as args
+
+???
+
+- String will give you a shell: variable expansion, chaining commands, i/o redirects
+- Json will run with the OS exec: no shell that could interfere with signal handling
+- A container starts with a single command, and when that command exits,
+  the container exits. So if you define both, docker turns that into one command.
+- If you use ENTRYPOINT and CMD together, you want the Json syntax
+
+---
+
+# Dockerfile Variables
+
+- `ARG` sets a variable within the Dockerfile, scoped
+  - Value overridden with flags on the build command
+- `ENV` sets a variable inside the container (image metadata)
+- Variables are expanded in steps like `COPY`
+- `ARG` and `ENV` are both set as environment variables in `RUN`
+
+???
+
+- An ARG before a FROM applies only to FROM lines
+- An ARG after a from line applies to all the following steps, until another FROM line
+
+---
+
+# Dockerfile
+
+- `LABEL` sets an image label
+- `EXPOSE` metadata on ports the container will likely use
+- `USER` changes the default user for commands
+- `WORKDIR` sets the default directory, similar to `cd`
+- `VOLUME` breaks things
+- `HEALTHCHECK` tells you when things break
+
+---
+
+# Building
+
+- `docker build -t image_name:v1.0.0 .`
+- Default name for input is Dockerfile
+
+???
+
+- By default the build creates an image id, we tag that image
+- You can later create additional tags, e.g. `v1.0` and `v1` to this same image
+- The trailing `.` is very important, this is your build context
+- The build context is tar'd up and sent to the docker engine
+- Do not tar up your entire `C` drive or user home directory
+- Dockerfile begins with a capital D and does not end with a `.txt`
+
+---
+
+template: inverse
+
+# Workshop
+
+---
+
+name: docker-compose
+template: inverse
+
+# Docker Compose
+
+---
+
+# Why docker-compose
+
+- `docker run ...` can become very tedious with lots of options
+- We can define these options as a config file
+- We can deploy multiple containers together
+- We can specify volume sources and ports to publish
+
+???
+
+- The image is portable can only define the container side
+- The compose file lets you define the other side in a syntax easily audited by local administrators
+
+---
+
+# Docker Compose Versions
+
+- Version 1: long since deprecated, but default
+- Version 2.x: useful for local development
+- Version 3.x: useful for Swarm mode
+
+???
+
+- Always define a version line in your compose file, you do not want v1 syntax
+- Swarm mode is a subset of `docker run` features, cannot run privileged
+  containers, and various other administrative container settings
+- If you do not depend on those features, use a v3 syntax for forward compatibility
+
+---
+
+class: small
+
+# Sample Compose File
+
+```no-highlight
+version: '3.4'
+volumes:
+  data:
+networks:
+  frontend:
+  backend:
+services:
+  web:
+    image: app:latest
+    volumes:
+    - "data:/data"
+    - "./code:/app"
+    networks:
+    - frontend
+    - backend
+    ports:
+    - "80:8080"
+  redis:
+    image: redis:latest
+    networks:
+    - backend
+```
+
+???
+
+- Notice the indentation, that's not just to make it pretty
+- This defines 1 volume, 2 networks, and 2 services
+- The redis service is only on the backend network, no published port
+  - Access via "redis:6379" in web container
+
+---
+
+# YAML
+
+- Used by Docker, Kubernetes, and lots of other apps for config files
+- White space sensitive, use spaces
+- Comments allowed with `#`
+- Backwards compatible with Json
+- Array entries start each line with a `-`
+- Key/value pairs start each line with a key name followed by a `:`
+- Strings may be in quotes
+
+???
+
+- Human readable Json, not necessarily human writable
+
+---
+
+# Docker Compose
+
+```no-highlight
+$ docker-compose up -d
+$ docker-compose ps
+$ docker-compose logs web
+$ docker-compose down
+```
+
+---
+
+# Swarm Mode Forward Compatibility
+
+```no-highlight
+$ docker stack deploy -c docker-compose.yml app
+$ docker stack services app
+$ docker stack ps app
+$ docker service logs app_web
+$ docker stack rm app
+```
+
+???
+
+- The v3 syntax is forward compatible with Swarm mode
+
+---
+
+template: inverse
+
+# Workshop
+
+---
+
+# Workshop
+
+https://labs.play-with-docker.com
+
+
+```no-highlight
+git clone https://github.com/dockersamples/example-voting-app.git
+cd example-voting-app
+docker-compose up -d
+docker-compose down
+
+docker swarm init --advertise-addr eth0
+docker stack deploy -c docker-stack.yml vote
+```
+
+Tips:
+- ssh helps with fast typing
+- Ports 5000 and 5001 are interesting
+- Example URL: http://ip172-18-0-14-asdfasdfasdfasdfasdf-5000.direct.labs.play-with-docker.com/
+
+???
+
+- If you do not see the CPU/Mem show up when creating an instance, close session and restart
+- For the port, if you do not get a link, copy the ssh and adjust with a "-5000" or other port number
+
+---
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
