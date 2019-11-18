@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Docker Intro - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+name: empty
+layout: true
+---
+name: base
+layout: true
+template: empty
+background-image: none
+<div class="slide-footer">@sudo_bmitch</div>
+---
+name: ttitle
+layout: true
+template: empty
+class: center, middle
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: inverse
+layout: true
+template: base
+class: center, middle, inverse
+background-image: none
+---
+name: impact
+layout: true
+template: base
+class: middle, impact
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+name: picture
+layout: true
+template: base
+class: center, middle
+background-image: none
+---
+name: code
+layout: true
+template: base
+class: terminal
+background-image: none
+---
+name: terminal
+layout: true
+template: base
+class: center, middle, terminal
+background-image: none
+---
+name: default
+layout: true
+template: base
+class: bg-blur
+background-image: url(img/containers_bg.png)
+background-size: cover
+---
+layout: false
+template: default
+name: agenda
+
+# Agenda
+
+- Running Containers
+- Building Images
+- Orchestration
+
+---
+layout: false
+template: ttitle
+name: title
+
+# Docker Intro
+
+.left-column[
+.pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
+]
+.right-column[.align-right[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+???
+- My twitter and github handles are what any self respecting sysadmin does
+  when you get a permission denied error on your favorite username.
+- This presentation is on github and I'll have a link to it at the end,
+---
+template: default
+
+```no-highlight
+$ whoami
+- Solutions Architect @ BoxBoat
+- Docker Captain
+- Frequenter of StackOverflow
+```
+
+.align-center[
+.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![Docker Captain](img/docker-captain.png)]
+.pic-30[![StackOverflow](img/stackoverflow-logo.png)]
+]
+
+???
+
+---
+layout: false
+template: default
+name: agenda1
+
+# Runing Containers
+
+- What is a container?
+- What is an image?
+- Why use containers?
+- Running containers
+- Persistent data
+- Networking
+- Docker Compose
+- Security
+- Best Practices
+
+---
+
+name: container
+template: inverse
+
+# What is a Container?
+
+---
+
+# Containers
+
+- App vs OS isolation
+- Namespaces: Limit what the app sees
+- cgroups: Limit what resources it can use
+- Images vs Containers
+
+???
+
+- Shared kernel vs shared hardware
+- Namespaces: Mount, PID, Network, User, UTS (hostname), IPC (inter process comm)
+- cgroups: CPU, memory, future may include I/O
+- Images vs Containers: Class vs Object, Definition vs Instance
+- Images: filesystem and metadata
+- Containers: extend image with config, RW FS layer, logs, namespaces and cgroups
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-container.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+---
+
+# Images
+
+- Filesystem and Metadata to create a container
+- Application packaging format
+- Application code/binaries and runtime are shipped together
+- Do not include configuration and data
+- Built with a Dockerfile
+- Immutable layers
+
+
+???
+
+- Filesystem is packaged as a set of tar files
+- Metadata includes the defaults for the container: command to run, env,
+  username, etc, which can be overridden
+- Runtime includes JRE, Python interpreter, Node, plus libraries and other dependencies
+- Separate your app into:
+  - Binaries, libs, deps: goes in image
+  - Configuration: env vars and conf files injected at runtime
+  - Data: volumes mounted into container
+- Dockerfile is the list of instructions to process to create an image reproducibly 
+- Each step of Df creates a filesystem delta, packaged as a tar, sha checksum, never changed
+  - Allows images to extend other images
+  - Changes require creating a new image, fundamentally diff from VMs
+  - Eliminates state drift 
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-image.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+---
+
+# Why?
+
+- Ops: Less overhead than a VM
+- Dev: Works on my machine
+- DevOps: Portability and faster deploys
+- Ephemeral containers prevent state drift
+- Enable microservices
+- Horizontal Scaling
+
+???
+
+- Containers don't need entire OS, so you can run more
+- Devs create same filesystem that will exist in prod, eliminate entire class of testing issues
+- Containers are very fast to release, and to roll back, seconds vs ansible playbook time
+- State drift:
+  - Who likes uptime?
+  - who wants to manage a server that's been running without a reboot for 10 years and needs patches for spectre/meltdown
+  - We now have a reverse uptime metric, companies intentionally stop containers that have been running for too long
+  - Uptime can go down, but availability can go up with rolling updates and LB's
+- Microservices:
+  - Conways Law: orgs design structures that mirror their communication structure
+  - Containers are designed for different groups to dev their own app, communicate across network, REST APIs
+- Google doesn't scale vertically, there's no single host running www.google.com, they run lots of small servers
+  - When you need more scale, you add more servers to share the load rather than a bigger server
+
+---
+
+# Which Docker
+
+- Docker Community Edition (CE - for Linux)
+- Docker Desktop (Windows and Mac)
+- Docker Enterprise
+- Docker for Windows Server
+
+???
+
+- On servers, it's Linux and focus of this presentation
+- Desktop versions for Windows and Mac include an embedded Linux environment
+  - Windows also supports Windows Containers
+- Enterprise is CE with a few more features
+- Windows Server supports both Win and Linux on the server, Enterprise
+
+---
+
+# Related Projects
+
+- Moby
+- containerd
+- runc
+- buildkit / buildx
+- linuxkit
+- CNAB
+- Docker App
+
+???
+- Moby: open source upstream of Docker
+- containerd forked out of Docker, just images/containers, no networking or volume code
+- runc: is one of many runtimes, runsc (gvisor), kata (VMs)
+- buildkit/buildx: revamped image build tooling
+- linuxkit: linux OS as containers
+- CNAB: cloud native application bundle, packages a multi-container app, images, and scripted installer together
+- Docker App: CNAB implementation that is specific to Docker Tooling
+
+---
+
+name: docker-run
+template: inverse
+
+# Running Containers
+
+---
+
+# Running Containers
+
+- Uses an image to generate a container
+- CLI is order sensitive
+
+```no-highlight
+$ docker [opts] container run [run_opts] <image_name> [cmd] ...
+```
+
+???
+- First docker command most learn is `run`
+- This take the image and turns it into a running container
+- CLI order matters, if you put options after the image name they become the command
+
+--
+
+```no-highlight
+$ docker container run -it --rm busybox echo hello world
+hello world
+$ 
+```
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container create <image_name>
+$ docker container start <container_name>
+```
+
+- Create a container from an image
+- Start that container
+
+???
+- `create` sets up the docker metadata for the container, sets up disk for the
+  container RW layer and log files
+- `start` generates the various namespaces, attaches to the network (IPAM),
+  and executes the command within the namespaces/cgroup
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+```
+
+- Run: combination create and start
+
+???
+- `run` is a combination of `create` and `start`
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+$ docker container ls -a
+```
+
+- `ls` shows containers
+
+???
+
+- By default, `ls` only shows running containers
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+$ docker container ls -a
+$ docker container restart <container_name>
+```
+
+- Restart a running container (stop and start)
+
+???
+
+- Restarting a container doesn't replace the container, you still have all
+  the same namespaces, logs, and filesystem changes.
+- This also doesn't change the image being used, so not useful after building
+  a new image
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+$ docker container ls -a
+$ docker container restart <container_name>
+$ docker container stop <container_name>
+```
+
+- Stop a running container
+
+???
+
+- Kills the process with a SIGTERM, 10 second sleep, followed by SIGKILL
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+$ docker container ls -a
+$ docker container restart <container_name>
+$ docker container stop <container_name>
+$ docker container kill <container_name>
+```
+
+- Forcefully kill a container
+
+???
+
+- Immediately runs a SIGKILL, could result in data loss
+
+---
+
+# Container Lifecycle
+
+```no-highlight
+$ docker container run <image_name>
+$ docker container ls -a
+$ docker container restart <container_name>
+$ docker container stop <container_name>
+$ docker container kill <container_name>
+$ docker container rm <container_name>
+```
+
+- Delete a container
+
+???
+
+- Delete container logs
+- Delete any filesystem changes from the image
+- Delete metadata stored in docker
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-lifecycle.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+# Debugging Containers
+
+```no-highlight
+$ docker container logs <container_name>
+```
+
+- Show STDOUT/STDERR
+
+???
+
+- Write your app logs to stdout/stderr and Docker will handle them for you
+- Do not write to files inside the container if avoidable
+- Docker can be configured to forward to log aggregators (Elastic/Splunk)
+
+---
+
+# Debugging Containers
+
+```no-highlight
+$ docker container logs <container_name>
+$ docker container inspect <container_name>
+```
+
+- Inspect: shows metadata for an object in docker
+
+???
+
+- Metadata includes what image, start/stop times, exit code, and any options passed when running
+- Very powerful for scripting and automation, output is json formatted and
+  format options let you select/filter/format using Go templates
+
+---
+
+# Debugging Containers
+
+```no-highlight
+$ docker container logs <container_name>
+$ docker container inspect <container_name>
+$ docker container exec <container_name> <cmd>
+```
+
+- Exec: Run a command in the same container environment
+
+???
+
+- The most common exec is a shell to get a command prompt inside the container
+- Useful for developers, code smell in production
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-debug.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: volumes
+template: inverse
+
+# Persistent Data?
+
+---
+
+# Volumes
+
+- Ephemeral Containers = Data Loss
+- Volumes mount an external source into containers
+- Not versioned or backed up by docker
+- Many to many relationship between containers and volumes
+
+???
+
+- Container FS is deleted with container rm
+- Volumes: mount external source into container
+  - Mounting hides the previous contents
+- External location isn't controlled by docker, no versioning or backups
+  - Deleted files in a volume are gone, recreating the container won't reset
+- Containers may have multiple volumes, mounting different directories
+- Multiple containers may mount the same volume (user manages file locking)
+
+---
+
+# Volume Types
+
+- Named:
+  - Docker manages with a name
+  - Initialized when empty to image contents
+- Host:
+  - Bind mount of directory on the host for external access
+  - No initialization, permission issues
+- Anonymous:
+  - Same as named volume, but with guid
+- Tmpfs:
+  - Not really a volume, data stored in RAM, never persisted
+
+???
+
+- Named volumes are preferred
+- Host volumes only when you need them
+  - Permission issues are common
+  - UID/GID mismatch between container and host user
+- Anonymous volumes are often accidents and where data is lost
+  - Typically when image defines a VOLUME target and container doesn't provide a source
+- tmpfs is useful for data that doesn't need to be saved
+  - Lost on container restart
+
+---
+
+# Managing Volumes
+
+```no-highlight
+$ docker volume
+...
+Commands:
+  create      Create a volume
+  inspect     Display detailed information on one or more volumes
+  ls          List volumes
+  prune       Remove all unused local volumes
+  rm          Remove one or more volumes
+...
+$ docker volume create [opts] <name>
+$ docker container run -v <src>:<tgt>[:opts] <image>
+```
+
+???
+
+- `docker volume` has similar commands, create, inspect, ls, rm
+- We can create a volume in advance with `create`, useful with options
+- Running a container with `-v` includes a volume, `src:tgt`
+  - excluding src results in anonymous vol
+  - options include RO, sync options for Mac
+
+---
+
+# Local Volume Driver
+
+```no-highlight
+$ docker volume create --driver local \
+    --opt type=none \
+    --opt device=/home/user/test \
+    --opt o=bind \
+    bind_vol
+
+$ docker volume create --driver local \
+    --opt type=nfs \
+    --opt o=nfsvers=4,addr=nfs.example.com,rw \
+    --opt device=:/path/to/dir \
+    nfs_vol
+```
+
+Options are passed through to `mount` syscall
+
+???
+
+- By default, local named volume stores locally in /var/lib/docker
+- We can change the default with options to local driver
+- This is the mount syscall, not cmd, but most cases are identical
+- `type` is typically the filesystem type, ext4, nfs, with bind it's none
+- `o` is for options
+- `device` is often the drive, e.g. /dev/sda1
+- Why do a bind mount this way instead of a host mount?
+  - Named bind mount will initialize host from image, including uid/gid perms
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-volume.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: networking
+template: inverse
+
+# Networking
+
+???
+
+- Microservies communicate over the network
+- So running mulitple containers needs a network to communicate
+- And external access needs a way to reach container ports
+
+---
+
+# Networking
+
+- Network is namespaced
+  - Private IP
+  - Localhost is internal to the container
+- Bridge: Linux software switch
+  - Multiple containers on the same bridge communicate on container ports
+- Overlay network: bridge that spans multiple hosts
+- DNS: enabled on user created networks
+  - Resolves container name, service name, aliases, container ID, not hostname
+- Publishing Ports: port forward from docker host into container
+- Expose: metadata/documentation from image creator to user
+
+???
+
+- Namespaced: 127.0.0.1 inside a container will not talk to the host
+  (by default, host networking)
+- Bridge: how containers talk to each other
+- Overlay: setup by swarm and K8s to allow containers to talk between hosts
+- DNS: container IP's change, DNS is built in service discovery
+  - must be a user created network
+- Publish: used for external access, don't connect to container IP
+- Expose: not required, documents port image creator expects app to listen on inside container
+
+---
+
+# Networking
+
+This doesn't work
+
+```no-highlight
+$ docker network create <net_name>
+$ docker container run -d \
+    --net <net_name> -p 8080:80 --name web \
+    nginx
+$ docker container run -it busybox ping web
+$ docker container run -it --net <net_name> \
+    busybox curl http://web:8080/
+$ curl http://localhost/
+```
+
+???
+
+- None of these ping and curl commands work, why?
+- ping is not on the same network, no DNS, diff bridge
+- curl inside a container needs the container port
+- curl on host needs the published port
+
+---
+
+# Networking
+
+This will work
+
+```no-highlight
+$ docker network create <net_name>
+$ docker container run -d \
+    --net <net_name> -p 8080:80 --name web \
+    nginx
+$ docker container run -it --net <net_name> \
+    busybox ping web
+$ docker container run -it --net <net_name> \
+    busybox curl http://web/
+$ curl http://localhost:8080/
+```
+
+???
+- Same network, and DNS, on user created networks for container networking
+- Container port when doing container networking
+- Host port outside of the container
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-networking.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: compose
+template: inverse
+
+# Compose
+---
+
+# Compose
+
+- `docker` is a CLI to REST API for `dockerd` daemon
+- `docker-compose` is another CIL to same API
+- Configuration is stored in YML file: `docker-compose.yml`
+- Args to `docker` get moved into YML
+- Multi-container projects
+- Scaling replicas of a container
+- Networking with DNS
+- Project name is prefixed on objects
+- Declarative vs Imperative
+
+???
+
+- We've been using a CLI to talk to a REST API
+- Compose avoids the need to remember all the args, moves into YML
+- Default settings are useful for most projects
+- Multi-container projects need networking, DNS, scaling
+- Project name is a kind of namespacing of an app
+- Named volumes are not deleted without extra flags
+- Declarative: define target state and compose compares to current, only runs
+  needed commands, YML is the target state
+
+---
+class: small
+
+# docker-compose.yml
+
+```no-highlight
+version: '2'
+
+volumes:
+  data:
+
+networks:
+  frontend:
+  backend:
+
+services:
+  app:
+...
+  db:
+...
+```
+
+???
+- YML is white space sensitive, JSON compatible
+- Top level includes version, volumes, networks, and services
+  - Must have version and services
+- Version 2 is a minimum, 2.x for single node docker-compose, 3.x to support swarm mode
+- Volumes and Networks define values to be used within services
+---
+class: small
+
+# docker-compose.yml
+
+```no-highlight
+...
+services:
+  app:
+    image: app:latest
+    environment:
+    - "DB_HOST=db"
+    ports:
+    - 8080:80
+    networks:
+    - frontend
+    - backend
+  db:
+    image: mysql
+    networks:
+    - backend
+    volumes:
+    - "data:/data"
+```
+
+???
+- Multiple services, app and db
+- Values within services are thinks you could create on `docker run`
+
+---
+
+# docker-compose
+
+```no-highlight
+$ docker-compose up -d
+$ docker-compose ps
+$ docker-compose restart app
+$ docker-compose logs app
+$ docker-compose down
+```
+???
+- Most of the CLI's match `docker` commands
+- `up` to start everything instead of `run`
+- `down` to stop and cleanup everything except for named volumes
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-compose.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: security
+template: inverse
+
+# Security
+
+---
+
+# Security
+
+- Capabilities
+- Seccomp
+- RO Filesystem
+- Scratch / Distroless
+- AppArmor / SELinux
+- Secrets
+
+???
+- Capabilities limit what root can do (shutdown, mount, change time, etc)
+- Seccomp limit what syscalls are permitted
+- Container root filesystem's can be made Read Only
+- Minimal images can include those without any normal commands like a shell or libc
+- Linux Security Modules AppArmor and SELinux restrict file and network operations
+- There are several ways to manage secrets:
+  - Avoid ENV vars (not scoped within app, exposed to child processes, dumped in
+    logs, visible in inspect)
+  - Use Swarm or K8s secrets, Vault, or Key Mgmt Svc (KMS)
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-security.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: best-practices
+template: inverse
+
+# Best Practices
+
+---
+
+# Best Practices
+
+- Separate code/deps, config/secrets, data
+- One app per container
+- Don't run as root
+- Named volumes
+- Minimize published ports
+- Reverse proxies
+
+???
+- Code/Deps go in Image, config/secrets injected in compose/manifest, data stored in volumes
+- Multi-app containers lose readable logs, error handling, and ability to update a single app
+- Use user namespaces or run containers as non-root to minimize escape risk (e.g. runc escape)
+- Named volumes > Host: UID/GID perm and initialization
+- Published ports are open to the internet
+- Reverse proxies are useful when running http microservices, publish one port, route by hostname/path/header
+  - Nginx, Traefik, HAProxy
+
+---
+
+
+
+
+
+
+
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-p1-example.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+name: section
+template: inverse
+
+# Section
+
+---
+layout: false
+template: default
+name: agenda2
+
+# Building Images
+
+.left-column[
+- [](#)
+]
+.right-column[
+]
+
+---
+layout: false
+template: default
+name: agenda3
+
+# Orchestration
+
+.left-column[
+- [](#)
+]
+.right-column[
+]
+
+
+
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-alpine2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+
+???
+---
+
+
+---
+
+template: inverse
+
+# Recap
+
+---
+
+# Recap
+
+
+---
+
+template: ttitle
+name: thanks
+
+# Thank You
+
+github.com/sudo-bmitch/presentations
+
+.content[
+.left-column[
+.pic-80[![Slides QR](img/github-qr.png)]
+]
+.right-column[.align-right[.no-bullets[
+<br><br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+???
+- This presentation is online, you can watch it again
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
