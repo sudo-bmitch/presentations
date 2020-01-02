@@ -7,7 +7,7 @@ pause/play the recording.
 
 ## Docker Build
 
-Covering multi-stage, Build-kit, Buildx, and multi architecture images from the
+Covering multi-stage, buildkit, buildx, and multi-architecture images from the
 perspective of a Go user.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-build/presentation.html)
