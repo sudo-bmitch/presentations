@@ -5,21 +5,19 @@ RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
 WORKDIR /src
 COPY . /src/
-CMD CGO_ENABLED=0 go build -o app . && ./app
+CMD CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app . && ./app
 
 FROM --platform=$BUILDPLATFORM dev as build
-ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
-RUN --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
-    --mount=type=cache,id=goroot,target=/root/.cache/go-build \
+RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
+    --mount=type=cache,sharing=locked,id=goroot,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -ldflags '-w -extldflags -static' -o app .
+    go build -ldflags '-s -w -extldflags -static' -o app .
 USER appuser
 CMD [ "./app" ]
 
 FROM scratch as release
-# COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/group /etc/
 COPY --from=build /src/app /app
 USER appuser

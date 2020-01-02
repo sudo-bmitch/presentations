@@ -79,12 +79,14 @@ name: agenda
 - [Build w/o Docker](#build-wo-docker)
 - [Debian Base](#debian)
 - [Alpine Base](#alpine)
-]
-.right-column[
 - [Multi-stage](#multi-stage)
 - [Dev Workflow](#dev-workflow)
-- [BuildKit](#buildkit)
-- [Buildx](#buildx)
+]
+.right-column[
+- [buildkit](#buildkit)
+- [Experimental](#experimental)
+- [Cross Platform](#cross-platform)
+- [buildx](#buildx)
 ]
 
 ---
@@ -103,11 +105,15 @@ name: title
 - Twitter: @sudo_bmitch
 - GitHub: sudo-bmitch
 ]]]
+
 ???
+
 - My twitter and github handles are what any self respecting sysadmin does
   when you get a permission denied error on your favorite username.
-- This presentation is on github and I'll have a link to it at the end,
+- This presentation is on github and I'll have a link to it at the end.
+
 ---
+
 template: default
 
 ```no-highlight
@@ -260,9 +266,7 @@ class: small
 ```go
 	data := struct {
 		ServerName, Path, OS, Arch string
-	}{
-		*serverName, path, runtime.GOOS, runtime.GOARCH,
-	}
+	}{ *serverName, path, runtime.GOOS, runtime.GOARCH, }
 	w.Header().Set("Server", "Hello Server")
 	w.WriteHeader(200)
 	err := tmpl.Execute(w, data)
@@ -301,7 +305,7 @@ template: code
 
 # Dockerfile: External Build
 
-```Dockerfile
+```no-highlight
 FROM debian:latest
 COPY app /app
 RUN chmod 755 /app
@@ -319,7 +323,7 @@ CMD /app
 
 template: terminal
 
-<asciinema-player src="demo-external.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-external.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ---
 
@@ -335,7 +339,7 @@ template: inverse
 
 template: terminal
 
-<asciinema-player src="demo-byhand.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-byhand.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
 - Before I create an image, I like to run commands by hand interactively
@@ -358,7 +362,7 @@ template: code
 
 # Dockerfile: Debian v1
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12
 RUN adduser --disabled-password --gecos appuser appuser
 WORKDIR /src
@@ -381,7 +385,7 @@ CMD /app
 
 template: terminal
 
-<asciinema-player src="demo-debian1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-debian1.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - Before I get to bad mouthing it too much, lets see that it works
 
@@ -391,7 +395,7 @@ template: code
 
 # Dockerfile: Debian v1
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12
 RUN adduser --disabled-password --gecos appuser appuser
 WORKDIR /src
@@ -416,7 +420,7 @@ template: code
 
 # Dockerfile: Debian v2
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12
 RUN adduser --disabled-password --gecos appuser appuser
 COPY . /src/
@@ -441,7 +445,7 @@ USER appuser
 
 template: terminal
 
-<asciinema-player src="demo-debian2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-debian2.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - So that works
 - And we shrink our image
@@ -461,7 +465,7 @@ template: code
 
 # Dockerfile: Alpine v1
 
-```Dockerfile
+```no-highlight
 *FROM golang:1.12-alpine
 *RUN adduser -D appuser
 COPY . /src/
@@ -482,7 +486,7 @@ CMD [ "/app" ]
 
 template: terminal
 
-<asciinema-player src="demo-alpine1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-alpine1.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
 - But when we run that, we don't have git
@@ -494,7 +498,7 @@ template: code
 
 # Dockerfile: Alpine v2
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12-alpine
 *RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
@@ -517,7 +521,7 @@ CMD /app
 
 template: terminal
 
-<asciinema-player src="demo-alpine2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-alpine2.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
 - So that works
@@ -549,7 +553,7 @@ template: code
 
 # Dockerfile: Multi-stage v1
 
-```Dockerfile
+```no-highlight
 *FROM golang:1.12-alpine as build
 RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
@@ -579,7 +583,7 @@ CMD [ "/app" ]
 
 template: terminal
 
-<asciinema-player src="demo-multi-stage1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-multi-stage1.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - So lets run that... and it fails because the user doesn't exist in scratch
 - We only created the user in our build stage, lets fix that in a sysadmin way
@@ -590,7 +594,7 @@ template: code
 
 # Dockerfile: Multi-stage v2
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12-alpine as build
 RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
@@ -614,7 +618,7 @@ CMD [ "/app" ]
 
 template: terminal
 
-<asciinema-player src="demo-multi-stage2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-multi-stage2.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - Lets run that... and we get fail number 2
 - Lets check the logs... wait, where's the container?
@@ -628,7 +632,7 @@ template: code
 
 # Dockerfile: Multi-stage v3
 
-```Dockerfile
+```no-highlight
 *FROM golang:1.12-alpine as dev
 RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
@@ -652,7 +656,7 @@ template: code
 
 # Dockerfile: Multi-stage v3
 
-```Dockerfile
+```no-highlight
 ...
 
 FROM scratch as release
@@ -674,7 +678,7 @@ FROM release
 
 template: terminal
 
-<asciinema-player src="demo-multi-stage3.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-multi-stage3.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - Lets run that... and woops, a shell needs input or it will exit...
 - See the "no such file or directory" here too, but the file exists, and is executable
@@ -685,19 +689,20 @@ template: terminal
 ---
 
 template: code
+class: small
 
 # Dockerfile: Multi-stage v4
 
-```Dockerfile
+```no-highlight
 FROM golang:1.12-alpine as dev
 RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
 WORKDIR /src
 COPY . /src/
-*CMD CGO_ENABLED=0 go build -o app . && ./app
+*CMD CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app . && ./app
 
 FROM dev as build
-*RUN CGO_ENABLED=0 go build -o app .
+*RUN CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app .
 USER appuser
 CMD [ "./app" ]
 
@@ -710,7 +715,7 @@ CMD [ "./app" ]
 
 template: terminal
 
-<asciinema-player src="demo-multi-stage4.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-multi-stage4.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - Lets run that, and this time it works
 - So that was a pain in the butt...
@@ -729,7 +734,7 @@ template: inverse
 
 template: terminal
 
-<asciinema-player src="demo-dev-workflow.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-dev-workflow.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 ???
 - The dev can run build the dev target to have the full compiler
 - But this time, when running it, I add a bunch of options
@@ -767,12 +772,26 @@ docker run -it --rm --net host \
 name: buildkit
 template: inverse
 
-# Our Builds Are Too Slow
+# Users Want More
+
+---
+
+# Classic Builder Problems
+
+- Users want new features
+- Performance
+- Cache Pruning
+- Kubernetes support
 
 ???
-- I've been hiding how long these builds take, but every time I run this
-  without a cache, go is downloading from github again
-- We made the images smaller, but can we make them faster?
+
+- Multi-stage opened the flood gates on feature requests
+- Changing the Dockerfile is a slow/painful process
+  - All build engines need to be updated, long release cycles
+- Performance issues are an issue with CI
+  - Every build with a minor dep change downloads all deps again
+- Cache pruning is all or nothing or based on build date
+- K8s users want something k8s native without docker engine
 
 ---
 
@@ -780,50 +799,202 @@ template: picture
 
 ![XKCD - Compiling](img/xkcd.303.compiling.png)
 ???
-- And yes that's good for office shenanigans
+- Sure slow builds are good for office shenanigans
 - But we can speed them up
 
 ---
 
-# Why BuildKit
+template: inverse
 
-- Build context is cached and only changes are sent
-- Dockerfile is parsed as a dependency graph
-- Steps can be run concurrently
-- Frontend parser can be swapped for new features
-- Build secrets (experimental)
-- Mounts to other images or context (experimental)
+# buildkit
+
+???
+
+- Standalone "kit"
+- Uses containerd or runc as backend instead of docker engine
+- Integrated back into docker similar to swarmkit
+
+---
+
+# buildkit Design
+
+- LLB parser and dependency graph
+- Efficient build context
+- Parallel build
+- Garbage collection
+- Multiple Output Types
+
+???
+
+- Dockerfile parsed into Low Level Builder 
+- Parser is swappable with a parser directive on the first line
+- Target stage is selected and deps are selected based on a dep graph
+- Bi-drectional comm with build client to only pull parts of context
+- Previous context is cached and rdiff used to pull in changes
+- Each stage is built in parallel
+- GC can remove unused layers and preserve based on time and size
+- Output can be tar, registry push, write to local dir
+
+---
+
+# Standalone Deployment
+
+- Run `buildkitd` as root
+- Rootless
+- Container
+- Kubernetes
+- Client is `buildctl`
+
+???
+
+- Listens on a local socket by default
+- Can also be configured to connect over TCP with mTLS
+- Rootless requires:
+  - sysctl: `kernel.unprivileged_userns_clone=1`
+  - `modprobe overlay permit_mounts_in_userns=1`
+- Env var BUILDKIT_HOST is set to a file, tls, docker-container, or kube-pod
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildkit1.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+
+- Download the buildkit standalone files from github and extract for buildctl
+- Run buildkitd as a container and set the env var to point to the container
+- Run buildctl to access buildkitd in the container with lots of args
+- Standalone buildctl doesn't output to docker (possible there isn't docker
+  here), so the output is a tar that we load with `docker load`
+- The result runs as expected
+
+---
+
+# Enable buildkit in Docker
+
+In a shell:
+
+```no-highlight
+$ export DOCKER_BUILDKIT=1
+```
+
+Host default in `/etc/docker/daemon.json`:
+
+```json
+{ "features": {"buildkit": true} }
+```
+
+Compose:
+
+```shell
+$ export COMPOSE_DOCKER_CLI_BUILD=1
+```
+
+???
+- Integrated into docker engine + CLI 18.09 or newer
+- One user can update their shell to test
+- Once you like buildkit, change the host default for all users
+- Compose 1.25.0 or newer supports buildkit by calling cli builder
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildkit2.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+
+- Lets run the same Dockerfile previously used in multi-stage examples
+- All we do is set an env var to enable buildkit
+- Output is same as buildctl, diff from classic docker build
+- Result creates a docker image by default, and runs as expected
+- Key here is setting a variable is all that's needed to transition
+
+---
+
+# Garbage Collection
+
+In `/etc/docker/daemon.json`:
+
+```json
+  "builder": {
+    "gc": {
+      "enabled": true,
+      "policy": [
+*       {"keepStorage": "512MB", "filter": ["unused-for=1400h"]]},
+*       {"keepStorage": "30GB", "all": true}
+      ]
+    }
+  }
+```
+
+???
+
+- You can specify one or more policies
+- These two keep 512MB after 58 days and 30GB before that
+- GC runs after each build completes (with a 1/sec? limit)
+
+---
+
+name: experimental
+template: inverse
+
+# Try This At Home
+
+???
+
+- Lets talk about some of the experimental features
+
+---
+
+# buildkit Experimental Features
+
+- Cache folders
+- Bind mount from context or image
+- Tmpfs
+- Secrets
+- SSH creds
+
+???
+
+- Each of these creates a bind mount into a specific build step
+- The contents of that bind mount are not included in the resulting image
+- Cache: debian/ubuntu packages, go modules, etc
+- Bind from context: processing a large data file
+- Bind from image: running aqua microscanner
+- Tmpfs: faster tmp files
+- Secrets: AWS or SSH creds
+- SSH: when your SSH creds are password protected
 
 ---
 
 class: small
 template: code
 
-# Dockerfile: BuildKit v1 (partial)
+# Dockerfile: buildkit v3 (partial)
 
-```Dockerfile
+```no-highlight
 *# syntax=docker/dockerfile:experimental
 
 FROM golang:1.12-alpine as dev
 COPY . /src/
 
 FROM dev as build
-*RUN --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
-*   --mount=type=cache,id=goroot,target=/root/.cache/go-build \
-*   CGO_ENABLED=0 go build -o app .
+*RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
+*   --mount=type=cache,sharing=locked,id=goroot,target=/root/.cache/go-build \
+*   CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app .
 CMD ./app
 
 FROM scratch as release
 COPY --from=build /etc/passwd /etc/group /etc/
 COPY --from=build /src/app /app
 CMD [ "/app" ]
-
-FROM debian as debug
 ...
 FROM release
 ```
 ???
-- Here's a BuildKit modified Dockerfile for speeding up a go build
+- Here's a buildkit modified Dockerfile for speeding up a go build
 - First line changes the frontend parser to enable experimental features
 - The `--mount` option mounts effectively a named volume for that RUN line
 - Directory persists between builds, does not get added to the image
@@ -831,42 +1002,56 @@ FROM release
 
 template: terminal
 
-<asciinema-player src="demo-buildkit1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-buildkit3.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
 - Important note, that `--mount` option is not backwards compatible
-- Notice how a buildkit run skips the debug stage,
-  not needed for release stage
+- buildkit skips the debug stage, not needed for release stage
 - Good for efficiency, bad for testing, need to inject a hard dependency
   or manually build specific stages
-- Populate the cache in both multi-stage and buildkit
+- Still works, but we need a comparison to see if it's better
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildkit4.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+
+- I've populated the cache in both multi-stage and buildkit
 - Change a single version number in the go.mod
 - Rerunning both shows buildkit skips the download on most modules
+  - Barely see the one change getting downloaded with a decent network
 
 ---
 
-name: buildx
-template: inverse
+# buildkit Output
 
-# Buildx? Another Builder?
+- Docker image
+- Registry image
+- Tar
+- Local directory
 
----
+???
 
-# Buildx
-
-- Orchestration for your build process
-- Layer above BuildKit
-- Supports multiple builders
-- Supports cross platform builds with builders on multiple nodes
+- By default, we almost always create a docker image
+- buildkit can push directly to a registry (may need creds)
+- If we send to a tar, we can directly output OCI images
+- We can also output the image filesystem to a local directory
+  - extract artifacts
+  - extract testing reports/logs
+  - generate grpc proto bufs
+  - attach debugger from host to extracted binary
 
 ---
 
 class: small
 template: code
 
-# Dockerfile: Buildx v1 (partial)
+# Dockerfile: buildkit v5 (partial)
 
-```Dockerfile
+```no-highlight
 ...
 FROM scratch as release
 COPY --from=build /etc/passwd /etc/group /etc/
@@ -884,50 +1069,143 @@ CMD [ "/app" ]
 FROM release
 ```
 ???
-- An interesting feature of buildx is to output more than just an image
-- This was also added to `docker build` (BuildKit) in 19.03 released after I made these slides
-- Lets make an artifact stage based on scratch, and copy our "app" binary into it
+- Use scratch for my artifact layer so only the specifically copied files are extracted
+
 ---
 
 template: terminal
 
-<asciinema-player src="demo-buildx1.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-buildkit5.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
+
 - Now if I start without an "app" binary in the directory
 - Run a build with the `--output` option
-- Docker showed this for generating protobuf files, dependency for rest of the build
+- Possible use cases
+  - extract artifacts
+  - extract testing reports/logs
+  - generate grpc proto bufs
+  - attach debugger from host to extracted binary
+
 ---
 
+name: cross-platform
 template: inverse
 
-# Multi-Architecture Builds
+# Cross Platform Builds
 
 ---
 
-# Multi-Architecture Builds
+# Cross Platform Build Options
 
 Three options:
 
-1. Qemu
-2. Configure multiple build nodes
-3. Cross compiling
+1. Qemu with binfmt_misc
+2. Cross compiling
+3. Multiple build nodes
 
 ???
 
 - Qemu is virtualization loaded into the kernel to run binaries for other platforms
   - Requires binfmt_misc module
-- Multiple build nodes with `docker buildx create ...`
 - Cross compiling works great with Go
+- Multiple build nodes available with buildx
+
+---
+
+# Setup binfmt_misc
+
+- User mode emulation binaries
+- Static version
+- Installed with `--fix-binary`
+- Verify `F` flag in `/proc/sys/fs/binfmt_misc/*`
+
+???
+
+- Part of qemu's processor emulation
+- Allows you to run binaries for other CPU's
+  - x86, ARM, MIPS, SPARC, PowerPC, etc
+- Static version means it's a single binary
+- The `--fix-binary` flag pins to the mount namespace so it works in containers
+- This is already done in Docker Desktop
+- This is done by unstable qemu-user-static package in Debian
+
+---
+
+# Easy button for binfmt_misc
+
+```no-highlight
+docker run --rm --privileged multiarch/qemu-user-static:register
+```
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildkit6.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+
+- On a host with binfmt_misc setup correctly, note the `F` flag
+- Replacing my golang image with one for a different platform
+- Running the build for that platform
+- Inspect shows the selected platform
+- And the container still runs, not the different arch output
+- Lets prove we are really running a diff binary using the debug image
+- From inside the debug image we need to install `file`
+- And from `file` we can see AMD vs x86
+  - The debug base image wasn't pulld again so it's still x86
+- Before I forget, lets pull golang again with the default platform
+
+---
+
+# Cross Compiling
+
+- Compiler support required
+- Cannot use RUN step in final image
+- buildkit includes platform ARGS
+
+???
+
+- I'm building with Go which includes cross compiling
+- The final image will be for a diff platform, so RUN without qemu would fail
+- You can still do everyting else, FROM, COPY, ENV, CMD, etc
+- One more detail needed, variables to control our build
+
+---
+
+# buildkit ARGS
+
+Image Target:
+
+- `TARGETPLATFORM`: Eg linux/amd64, linux/arm/v7, windows/amd64.
+- `TARGETOS`: OS component of TARGETPLATFORM
+- `TARGETARCH`: architecture component of TARGETPLATFORM
+- `TARGETVARIANT`: variant component of TARGETPLATFORM
+
+Build Node:
+
+- `BUILDPLATFORM`: Eg linux/amd64, linux/arm/v7, windows/amd64.
+- `BUILDOS`: OS component of BUILDPLATFORM
+- `BUILDARCH`: architecture component of BUILDPLATFORM
+- `BUILDVARIANT`: variant component of BUILDPLATFORM
+
+???
+
+- Same options, just Target vs Build
+- Platform is full string, e.g. linux/arm/v7
+- OS e.g. linux
+- Arch e.g. arm
+- Variant e.g. v7
 
 ---
 
 class: small
 template: code
 
-# Dockerfile: Buildx v2 (partial)
+# Dockerfile: buildkit v7 (partial)
 
-```Dockerfile
+```no-highlight
 # syntax=docker/dockerfile:experimental
 
 *FROM --platform=$BUILDPLATFORM golang:1.12-alpine as dev
@@ -935,47 +1213,128 @@ RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
 WORKDIR /src
 COPY . /src/
-CMD CGO_ENABLED=0 go build -o app . && ./app
+CMD CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app . && ./app
 
 *FROM --platform=$BUILDPLATFORM dev as build
-*ARG TARGETPLATFORM
 *ARG TARGETOS
 *ARG TARGETARCH
-RUN --mount=type=cache,id=gomod,target=/go/pkg/mod/cache \
-    --mount=type=cache,id=goroot,target=/root/.cache/go-build \
+RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
+    --mount=type=cache,sharing=locked,id=goroot,target=/root/.cache/go-build \
 *   CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-*   go build -ldflags '-w -extldflags -static' -o app .
+*   go build -ldflags '-s -w -extldflags -static' -o app .
 CMD ./app
 ...
 ```
+
 ???
-- This is option 3, cross compile binary on one platform, 
+
 - The `FROM --platform` flags are needed to pull an image for the build host
   rather than target platform
-- Docker gives you the TARGETPLATFORM, TARGETOS, and TARGETARCH arguments
-- These options line up nicely with GOOS and GOARCH
+- These TARGET and BUILD ARGS line up nicely with GOOS and GOARCH
 - I added even more flags to ensure a static compile
 - Only use COPY steps to create target platform image as release, that stage is
   unchanged
+
 ---
 
 template: terminal
 
-<asciinema-player src="demo-buildx2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-buildkit7.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
 
-- First, without buildx, we can build platform specific images
-- If we try to run it, we get a not found error, but this time for another reason
-- Lets mount the qemu binary into the container that the kernel needs
-- Success, we are running ARM64 binaries on an AMD64 system
-- Buildx lets us build all these together into a multi-arch image
-- We do need to push to a registry, local images are a single arch per tag
-- The manifest command shows the two arch's from the remote registry
-- If we run it, docker automatically pulls our local arch
-- We can override the arch, again getting the no such file error
-- Adding the qemu binary for the kernel mod allows this to work, this could also be added to the image
-- Now we see the expect ARM64 output
+- Despite my typo, this is running on a node without qemu setup (ssh'd into a VM)
+- The v7 image contains the `--platform` and cross compile vars
+- First, lets try the v6 we ran before with qemu, that fails without qemu
+- Next, lets try the v7 letting golang do the cross compile
+- That builds, inspect shows the platform, but can we run it? Nope, as expected.
+- We can build and run our debug container, and see the binary is indeed for ARM
+- This can be pushed to a registry, but it would be nice if we pushed all the
+  platforms under a single tag
+
+---
+
+name: buildx
+template: inverse
+
+# buildx
+
+---
+
+# buildx
+
+- CLI Plugin for buildkit
+- Multiple builders
+- Multi-platform images
+
+???
+
+- `docker build` is a layer removed from buildkit, this gives all the options
+  - All the cool options I've picked have been since added into `docker build`
+- Remote builders are supported, uses `docker context`
+- Multiple nodes may be added to a single builder definition for multiple platforms
+- When pushing to a registry, you may create a multi-platform image manifest (x86, ARM, etc) for a single tag
+- Multiple builds run for different platforms from a single command
+
+---
+
+# Enable Experimental CLI
+
+```shell
+$ export DOCKER_CLI_EXPERIMENTAL=enabled
+```
+
+```no-highlight
+$ echo '{ "experimental": "disabled" }' >~/.docker/config.json
+```
+
+???
+
+- buildx and other CLI plugins are experimental in 19.03
+- CLI experimental is separate from Engine experimental
+- The first option would need to be added to .bashrc for persistence
+- The second option should probably be done with `vim` to avoid deleting existing logins
+
+---
+
+template: code
+
+# Multi-Platform Images
+
+```no-highlight
+$ docker buildx create --driver docker-container \
+    --name container default
+
+$ docker buildx use container
+
+$ docker buildx build \
+  --platform linux/amd64,linux/arm64,linux/arm/v7 \
+  -t sudobmitch/golang-hello:buildx \
+  --output type=registry .
+
+$ docker manifest inspect sudobmitch/golang-hello:buildx
+```
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-buildx1.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+
+- buildx works on top of docker context, there's the default, and I'll add one
+  for a Pi
+- Creating two buildx instances, local and Pi. Multi-node builders would have
+  both in one instance.
+- Inspect with a bootstrap deploys the docker-container driver deploys that
+  container.
+- buildx build now runs with all the platforms, pointed to a single reg tag
+- Manifest list shows each manifest within tag, one per platform
+- Pull will retrieve manifest for our local platform
+- Override pull + qemu allows testing of other platforms
+- Running container with rpi0 context pulls appropriate image for that arch
+- Curl to different hostname shows it running
 
 ---
 
@@ -986,19 +1345,22 @@ template: code
 
 ```shell
 $ docker image ls golang-hello
-REPOSITORY    TAG                  IMAGE ID       CREATED             SIZE
-golang-hello  buildx-arm64         d1692becb3f8   20 minutes ago      7.69MB
-golang-hello  buildx-amd64         df177135bf4b   21 minutes ago      7.98MB
-golang-hello  buildkit1            7052ce2a5f09   33 minutes ago      9.99MB
-golang-hello  multi-stage4         84dc9e78dd1b   About an hour ago   9.99MB
-golang-hello  multi-stage4-dev     5ea1251753db   About an hour ago   375MB
-golang-hello  multi-stage3-debug   d65226b558f6   About an hour ago   111MB
-golang-hello  multi-stage2         e8d6f4a794cb   About an hour ago   10.1MB
-golang-hello  multi-stage1         f02b6dbc6313   About an hour ago   10.1MB
-golang-hello  alpine2              db656cac628a   2 hours ago         375MB
-golang-hello  debian2              775f11a0b12f   2 hours ago         783MB
-golang-hello  debian1              0a329955d9e5   2 hours ago         846MB
-golang-hello  external             8a986860f72b   2 hours ago         121MB
+REPOSITORY     TAG                 IMAGE ID       CREATED             SIZE
+golang-hello   buildkit7           10e725ee3bd6   20 hours ago        6.99MB
+golang-hello   buildkit6           10e725ee3bd6   20 hours ago        6.99MB
+golang-hello   buildkit4           f5156b5aff72   20 hours ago        7.31MB
+golang-hello   buildkit3           f5156b5aff72   20 hours ago        7.31MB
+golang-hello   buildkit2           f5156b5aff72   20 hours ago        7.31MB
+golang-hello   buildkit1           0f3a077975bd   3 hours ago         7.31MB
+golang-hello   multi-stage4        69a3b1720f26   21 hours ago        7.31MB
+golang-hello   multi-stage4-dev    9c0c8680f67c   21 hours ago        362MB
+golang-hello   multi-stage3-debug  916e687a5071   21 hours ago        124MB
+golang-hello   multi-stage2        15cfdffa0714   21 hours ago        10.1MB
+golang-hello   multi-stage1        ce0eea9b7f73   21 hours ago        10.1MB
+golang-hello   alpine2             c65efaacedef   21 hours ago        372MB
+golang-hello   debian2             fec60bbc7c50   21 hours ago        820MB
+golang-hello   debian1             38870c90431c   21 hours ago        886MB
+golang-hello   external            ca2d1b1a8a8a   21 hours ago        134MB
 ```
 ???
 - Some of those flags for static compiling or specifying the architecture
@@ -1034,9 +1396,10 @@ template: inverse
 - Select a minimal base image
 - Don't ship a compiler if you don't need it
 - Use volumes for a faster developer workflow
-- BuildKit can speed up builds
-- BuildKit can reuse the go cache between builds
-- Buildx makes multi-architecture images easy
+- buildkit can speed up builds
+- buildkit can reuse the go cache between builds
+- buildkit enables multi-platform building
+- buildx makes multi-platform manifests easy
 
 ---
 

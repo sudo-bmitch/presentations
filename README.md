@@ -7,7 +7,8 @@ pause/play the recording.
 
 ## Docker Build
 
-Covering multi-stage, Build-kit, Buildx, and multi architecture images.
+Covering multi-stage, Build-kit, Buildx, and multi architecture images from the
+perspective of a Go user.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-build/presentation.html)
 
@@ -45,6 +46,25 @@ There was also a webinar given based on the above talk. Slides are almost identi
 
 - [Lightning talk](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow-lightning.pdf)]
+
+## Asciinema
+
+- I use the player from: https://github.com/asciinema/asciinema-player
+- The follow commands are used to build a recording:
+  ```
+  # Install asciinema:
+  apt-get install asciinema
+  # Setup a window:
+  tmux new-session -s preso
+  # Tip: set PS1='\$ ', set window size to: 100x26 with `printf '\e[8;26;100t'`
+  # After windows are setup, detach from tmux (Ctrl-B D)
+  # Create a recording:
+  asciinema rec name.cast -i 3 -c "tmux attach -t preso"
+  # Stop the recording by detaching (Ctrl-B D)
+  # Tip: Edit the recording to remove the last few milliseconds of the detach
+  # Replay the recording:
+  asciinema play name.cast
+  ```
 
 ## License
 

@@ -3,15 +3,14 @@ RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
 WORKDIR /src
 COPY . /src/
-CMD CGO_ENABLED=0 go build -o app . && ./app
+CMD CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app . && ./app
 
 FROM dev as build
-RUN CGO_ENABLED=0 go build -o app .
+RUN CGO_ENABLED=0 go build -ldflags '-s -w -extldflags -static' -o app .
 USER appuser
 CMD [ "./app" ]
 
 FROM scratch as release
-# COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/group /etc/
 COPY --from=build /src/app /app
 USER appuser
