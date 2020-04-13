@@ -74,9 +74,21 @@ name: agenda
 
 # Agenda
 
-- Running Containers
-- Building Images
-- Orchestration
+.left-column[
+- [What is a Container?](#container)
+- [Running Containers](#docker-run)
+- [Volumes](#volumes)
+- [Networking](#networking)
+- [Compose](#compose)
+- [Security](#security)
+]
+.right-column[
+- [Best Practices](#best-practices)
+- [Building Images](#building)
+- [Multi-Stage Builds](#multi-stage)
+- [Registry](#registry)
+- [Orchestration](#orchestration)
+]
 
 ---
 layout: false
@@ -115,23 +127,6 @@ $ whoami
 ]
 
 ???
-
----
-layout: false
-template: default
-name: agenda1
-
-# Running Containers
-
-- What is a container?
-- What is an image?
-- Why use containers?
-- Running containers
-- Persistent data
-- Networking
-- Docker Compose
-- Security
-- Best Practices
 
 ---
 
@@ -889,7 +884,7 @@ template: inverse
 
 ---
 
-name: section
+name: building
 template: inverse
 
 # Building Images
@@ -1373,6 +1368,8 @@ USER app:app
 
 ---
 
+name: multi-stage
+
 # Multi-Stage Builds
 
 ```no-highlight
@@ -1482,6 +1479,7 @@ template: inverse
 - We did run
 - Now we did build
 - What about the ship?
+- Note: Docker's slogan changed to Build, Share, Run. Ships make better slides.
 
 ---
 
@@ -1542,6 +1540,7 @@ template: inverse
 
 ---
 
+name: recap
 template: inverse
 
 # Recap
