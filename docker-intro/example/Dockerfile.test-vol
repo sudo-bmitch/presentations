@@ -1,0 +1,7 @@
+FROM busybox:latest
+
+RUN mkdir -p /vol/anonymous /vol/host /vol/named \
+ && echo "from build: anonymous" >/vol/anonymous/build.txt \
+ && echo "from build: host" >/vol/host/build.txt \
+ && echo "from build: named" >/vol/named/build.txt
+

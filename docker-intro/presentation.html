@@ -121,7 +121,7 @@ layout: false
 template: default
 name: agenda1
 
-# Runing Containers
+# Running Containers
 
 - What is a container?
 - What is an image?
@@ -151,7 +151,7 @@ template: inverse
 
 ???
 
-- Shared kernel vs shared hardware
+- Shared kernel isolating apps vs shared hardware isolating OSs
 - Namespaces: Mount, PID, Network, User, UTS (hostname), IPC (inter process comm)
 - cgroups: CPU, memory, future may include I/O
 - Images vs Containers: Class vs Object, Definition vs Instance
@@ -162,7 +162,7 @@ template: inverse
 
 template: terminal
 
-<asciinema-player src="demo-p1-container.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-1-container.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ---
 
@@ -175,7 +175,6 @@ template: terminal
 - Built with a Dockerfile
 - Immutable layers
 
-
 ???
 
 - Filesystem is packaged as a set of tar files
@@ -187,7 +186,7 @@ template: terminal
   - Configuration: env vars and conf files injected at runtime
   - Data: volumes mounted into container
 - Dockerfile is the list of instructions to process to create an image reproducibly 
-- Each step of Df creates a filesystem delta, packaged as a tar, sha checksum, never changed
+- Each step of a Dockerfile creates a filesystem delta, packaged as a tar, sha checksum, never changed
   - Allows images to extend other images
   - Changes require creating a new image, fundamentally diff from VMs
   - Eliminates state drift 
@@ -196,7 +195,7 @@ template: terminal
 
 template: terminal
 
-<asciinema-player src="demo-p1-image.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-2-image.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ---
 
@@ -239,8 +238,9 @@ template: terminal
 - On servers, it's Linux and focus of this presentation
 - Desktop versions for Windows and Mac include an embedded Linux environment
   - Windows also supports Windows Containers
-- Enterprise is CE with a few more features
+- Enterprise is CE with a few more features, now owned by Mirantis
 - Windows Server supports both Win and Linux on the server, Enterprise
+  - First 3rd party service shipped by MS with their OS
 
 ---
 
@@ -255,13 +255,14 @@ template: terminal
 - Docker App
 
 ???
-- Moby: open source upstream of Docker
+- Moby: open source upstream of Docker, similar to Fedora vs RHEL
 - containerd forked out of Docker, just images/containers, no networking or volume code
-- runc: is one of many runtimes, runsc (gvisor), kata (VMs)
+- runc: is one of many runtimes, runsc (gvisor), kata (VMs). Takes FS+Net, adds other namespaces and runs/watches single container
 - buildkit/buildx: revamped image build tooling
-- linuxkit: linux OS as containers
+- linuxkit: linux OS as containers, part of Docker Desktop
 - CNAB: cloud native application bundle, packages a multi-container app, images, and scripted installer together
 - Docker App: CNAB implementation that is specific to Docker Tooling
+- These are just the Docker projects, see also CNCF landscape
 
 ---
 
@@ -419,7 +420,7 @@ $ docker container rm <container_name>
 
 template: terminal
 
-<asciinema-player src="demo-p1-lifecycle.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-3-lifecycle.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -476,7 +477,7 @@ $ docker container exec <container_name> <cmd>
 
 template: terminal
 
-<asciinema-player src="demo-p1-debug.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-4-debugging.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -592,7 +593,7 @@ Options are passed through to `mount` syscall
 
 template: terminal
 
-<asciinema-player src="demo-p1-volume.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-5-volumes.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -605,7 +606,7 @@ template: inverse
 ???
 
 - Microservies communicate over the network
-- So running mulitple containers needs a network to communicate
+- So running multiple containers needs a network to communicate
 - And external access needs a way to reach container ports
 
 ---
@@ -641,12 +642,12 @@ template: inverse
 This doesn't work
 
 ```no-highlight
-$ docker network create <net_name>
+$ docker network create usernet
 $ docker container run -d \
-    --net <net_name> -p 8080:80 --name web \
+    --net usernet -p 8080:80 --name web \
     nginx
 $ docker container run -it busybox ping web
-$ docker container run -it --net <net_name> \
+$ docker container run -it --net usernet \
     busybox curl http://web:8080/
 $ curl http://localhost/
 ```
@@ -665,13 +666,13 @@ $ curl http://localhost/
 This will work
 
 ```no-highlight
-$ docker network create <net_name>
+$ docker network create usernet
 $ docker container run -d \
-    --net <net_name> -p 8080:80 --name web \
+    --net usernet -p 8080:80 --name web \
     nginx
-$ docker container run -it --net <net_name> \
+$ docker container run -it --net usernet \
     busybox ping web
-$ docker container run -it --net <net_name> \
+$ docker container run -it --net usernet \
     busybox curl http://web/
 $ curl http://localhost:8080/
 ```
@@ -683,9 +684,33 @@ $ curl http://localhost:8080/
 
 ---
 
+# Networking
+
+- Link: legacy feature, based on static hostname entries
+- Publish on a single interface: `-p 127.0.0.3:80:8080`
+- Reverse proxies / Ingress
+- Container IP address
+
+
+???
+
+- Few miscellaneous points...
+- Don't use links, when your target container is replaced, it gets a new IP, and the link no longer works.
+- There is more than one loopback IP, but this could be any IP on the host. Host port 80, container port 8080
+- Many reverse proxy options: nginx, haproxy, traefik
+  - Publish a port (HTTP/HTTPS) to the proxy, that talks to each container
+  - Access containers by hostname/path/header/etc
+  - Key component of microservices deployment, useful for internal LB
+- Containers will have a private IP, don't use it, publish ports to host or DNS between containers
+  - IP addresses change as containers are replaced
+  - Static IP's for a container eliminate the ability to scale or do rolling updates
+  - Static IP's are a code smell, treating container as a VM, cattle not pets
+
+---
+
 template: terminal
 
-<asciinema-player src="demo-p1-networking.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-6-networking.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -699,7 +724,7 @@ template: inverse
 # Compose
 
 - `docker` is a CLI to REST API for `dockerd` daemon
-- `docker-compose` is another CIL to same API
+- `docker-compose` is another CLI to same API
 - Configuration is stored in YML file: `docker-compose.yml`
 - Args to `docker` get moved into YML
 - Multi-container projects
@@ -796,7 +821,7 @@ $ docker-compose down
 
 template: terminal
 
-<asciinema-player src="demo-p1-compose.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-7-compose.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -832,7 +857,7 @@ template: inverse
 
 template: terminal
 
-<asciinema-player src="demo-p1-security.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-1-8-security.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
 ---
@@ -864,12 +889,358 @@ template: inverse
 
 ---
 
+name: section
+template: inverse
 
+# Building Images
 
+---
 
+# Image Fundamentals
 
+- Overlay Filesystem
+  - Filesystem type in the Linux kernel
+  - Merges one or more base layers with read-write layer
 
+???
 
+- Overlay filesystem takes one or more base layers, merges them together
+- Each layer is a directory
+- Add a work directory that is empty, just for overlay
+- Read write upper layer captures changes, lower layers are read-only
+- Read write layer could be added to list of lower layers in a future mount
+- Each layer is a step of an image build
+
+---
+
+template: terminal
+
+<asciinema-player src="demo-2-1-overlay.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
+
+???
+---
+
+# Image Fundamentals
+
+- Layered Filesystem
+- Base Image
+  - scratch
+  - Alpine
+  - Debian, CentOS
+  - distroless
+  - Any other Image
+
+???
+- Scratch: empty filesystem, base of everything
+  - No shell, libraries, etc
+- Alpine is minimal
+  - musl libc rather than glibc
+- Debian, CentOS, etc ships minimal filesystem for those distros
+  - Not a full install, stripped down
+  - Not the kernel, that's shared
+- Google distroless includes minimal filesystem for various languages
+- Anything can be a base image, extend images from upstream
+
+---
+
+# Image Fundamentals
+
+- Layered Filesystem
+- Base Image
+- Dockerfile Steps
+  - FROM
+  - RUN
+  - COPY
+  - CMD
+
+???
+
+- Dockerfile's are a list of steps
+- Each step changes metadata or adds a filesystem layer
+- FROM defines base image, all layers inherited
+- RUN performs command in temp container, captures filesystem change
+- COPY copies files from context to new layer
+- CMD sets default command when container is run, only one
+
+---
+
+class: small
+
+# Dockerfile
+
+```no-highlight
+FROM python:3
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 80
+
+ENV NAME=Docker User
+CMD [ "gunicorn", "app:app", "-b", "0.0.0.0:80", \
+      "--log-file", "-", "--access-logfile", "-", \
+      "--workers", "4", "--reload", "--keep-alive", "0" ]
+```
+
+???
+- FROM python: depend on something other than latest, semver
+- WORKDIR is how you cd to a directory, affects all relative commands
+- COPY a single file, or later the entire context
+- RUN captures filesystem change with pip install
+- EXPOSE is documentation
+- ENV defines environment variables for commands, both RUN and CMD
+- LABEL is metadata, useful documentation to users
+- Why two COPY commands? Layer caching...
+
+---
+
+# Layer Caching
+
+- Docker reuses cache of previous builds when possible
+- Compares:
+  - Previous layer
+  - Command being run
+  - Checksum on files/metadata
+
+???
+
+- Previous layer: once the cache misses, all following steps are uncached, order matters
+- Command: RUN, this includes environment/args
+- Checksum: COPY, this looks at file contents, permissions, ownership
+- By copying requirements.txt separately, we only run pip install if requirements changes
+
+---
+
+# FROM
+
+- Imports metadata and pointers to filesystem layers
+- Additional lines after FROM extend the new image
+
+???
+
+- Never modify the parent image, only add new layers to define different metadata
+- To change the base image layers, you need to pull or build base image itself
+
+---
+
+class: small
+
+```no-highlight
+$ cat Dockerfile
+FROM busybox
+
+$ docker image build -t mybusybox .
+Sending build context to Docker daemon  24.06kB
+Step 1/1 : FROM busybox:latest
+ ---> 6d5fcfe5ff17
+Successfully built 6d5fcfe5ff17
+Successfully tagged mybusybox:latest
+
+$ docker image ls | grep busybox
+REPOSITORY     TAG       IMAGE ID        CREATED         SIZE
+busybox        latest    6d5fcfe5ff17    2 months ago    1.22MB
+mybusybox      latest    6d5fcfe5ff17    2 months ago    1.22MB
+```
+???
+
+- If we make no changes, it's the same image id
+
+---
+
+# Exec vs Shell Syntax
+
+```no-highlight
+RUN [ "echo", "hello", "world" ]
+RUN echo hello world
+```
+
+- Exec: json array
+  - Executes binary directly with syscall
+- Shell: any string
+  - Expands environemnt variables
+  - I/O redirection
+  - Chaining commands
+
+???
+
+- Shell format is any string, docker will run with `/bin/sh -c "your string"`
+- Shells give lots of features we like
+- Exec directly runs the command, Linux exec syscall
+  - Each arg is a separate array entry, often spaces in shell command
+  - You can exec a shell script or any other command
+- Shell's take pid 1, and block syscalls
+- ENTRYPOINT+CMD syntax breaks when using shell
+- What happens when you have a json parsing error?
+  - A: it runs broken json string as a shell command
+
+---
+
+# ENTRYPOINT vs CMD
+
+- Both are ways to sest the default command
+- Override CMD: `docker run debian echo hello world`
+- Override ENTRYPOINT: `docker run --entrypoint /bin/bash some_image`
+- Both together concatenate into one command
+
+```no-highlight
+ENTRYPOINT [ "/bin/app", "--common", "option" ]
+CMD [ "server", "--default", "arg" ]
+```
+
+???
+- Individually, each option is the same except for how you override
+- CMD is easy to override, ENTRYPOINT is often a script to parse CMD
+- What command(s) does docker run when you start a container with the above overridden with a new CMD?
+
+--
+
+```no-highlight
+$ docker container run yourimg client --custom arg
+>>> /bin/app --common option client --custom arg
+```
+???
+
+- How many commands will docker run to start your container? 1
+- If one command / script runs lots of processes in the background and returns, what happens? Container exits
+
+---
+class: small
+
+# ENTRYPOINT vs CMD
+
+```no-highlight
+ENTRYPOINT /bin/app --common option
+CMD --default arg
+```
+
+```no-highlight
+$ docker container run yourimg
+>>> /bin/sh -c "/bin/app --common option" /bin/sh -c "--default arg"
+```
+
+???
+- If you use the string syntax, you get this command executed in the container
+- `/bin/sh -c` only takes a single arg, everything else is `$*` passed to that arg string
+
+--
+```no-highlight
+/bin/sh -c "echo input is $1 $2" hello world
+```
+
+???
+- Valid syntax would look like `/bin/sh -c "echo $1 $2" hello world`
+
+---
+class: small
+
+# ENTRYPOINT vs CMD
+
+```no-highlight
+ENTRYPOINT ["/bin/app", '--common', 'option' ]
+CMD [ "--default"  "arg" }
+```
+
+```no-highlight
+$ docker container run yourimg
+>>> /bin/sh -c "[\"/bin/app\", '--common', 'option' ]" /bin/sh -c \
+    "[ \"--default\"  \"arg\" }" 
+
+docker: Error response from daemon: OCI runtime create failed:
+  container_linux.go:349: starting container process caused
+  "exec: \"[/bin/app,\": stat [/bin/app,: no such file or directory": unknown.
+```
+
+???
+
+- Any error parsing the json, results in running string with a shell
+
+---
+
+# ENV
+
+- Environment variable is defined in the image
+- Expanded by docker in:
+  - COPY / ADD
+  - ENV
+  - FROM
+  - LABEL
+- Affects any RUN commands, and containers
+
+???
+
+- RUN only captures changes to the filesystem, if you want to set an env var, you must tell docker
+- Also expanded in:
+  - EXPOSE
+  - STOPSIGNAL
+  - USER
+  - VOLUME
+  - WORKDIR
+- Note: docker does not expand variable in run, only injects variable and shell in container expands it
+  - Exec syntax does not expand
+
+---
+
+# Build ARGs
+
+- ARG behaves identical to ENV during build
+- ARG is scoped
+  - Global
+  - Current stage
+- Can be overridden at build time
+
+```no-highlight
+docker image build --build-arg APP_VER=5.0 -t app:5.0 .
+```
+
+---
+
+template: picture
+
+# ENV vs ARG
+
+???
+
+- How do you pick?
+
+--
+
+.pic[![Why not both](img/why_not_both.gif)]
+
+---
+
+# ENV vs ARG
+
+```no-highlight
+ARG APP_VER=5.0
+ENV APP_VER=${APP_VER}
+RUN installer.sh -v ${APP_VER}
+```
+
+???
+
+- By doing both, we can change a variable at build time, and still have it when running the container
+- If you don't need to change it at build time, but want it when container is run, use ENV
+- If you only want it during build, use ARG
+
+---
+
+# Demo / Lab
+
+- Create the mobysay image
+- Based on "debian:10"
+- Set arg "DEBIAN_FRONTEND=noninteractive"
+- Run `apt-get update` and `apt-get install cowsay`
+- Copy in moby.cow to `/usr/share/cowsay/cows/`
+- Update PATH to include `/usr/games`
+- When run, execute `cowsay -f moby.cow Whale hello there` where the message can change
+
+???
+
+- Give group a few minutes to work on lab
 
 ---
 
@@ -878,51 +1249,296 @@ template: terminal
 <asciinema-player src="demo-p1-example.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
----
-
-name: section
-template: inverse
-
-# Section
+- mobysay image
+- We'll go over Dockerfile in detail next
+- Show build, run, and run with a different command
 
 ---
-layout: false
-template: default
-name: agenda2
 
-# Building Images
+# Dockerfile
 
-.left-column[
-- [](#)
-]
-.right-column[
-]
+```no-highlight
+FROM debian:10
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends cowsay
+
+COPY moby.cow /usr/share/cowsay/cows/
+
+ENV PATH=$PATH:/usr/games
+
+ENTRYPOINT [ "cowsay", "-f", "moby.cow" ]
+CMD [ "Whale hello there" ]
+```
+
+???
+
+- `debian:10` binds to a major version but allows patches
+- `ARG` ensures that apt-get doesn't prompt while not affecting users in interactive containers later
+- `RUN` is chained: ensures both commands run together, why?
+  - If separate, an update could cache the apt repos, and a later install could pull stale or missing packages
+- Where does `$PATH` come from?
+  - From the parent image, set in `debian:10`, not from user building container
+- `ENTRYPOINT` uses the json syntax so we can merge `CMD`
+- `CMD` allows message to be easily overridden
 
 ---
-layout: false
-template: default
-name: agenda3
 
-# Orchestration
+# ADD vs COPY and the Build Context
 
-.left-column[
-- [](#)
-]
-.right-column[
-]
+- ADD will expand tar files, with various compression
+- ADD will pull from URL's, and track if those URL's have changed
+- When source is a directory, contents of the directory are copied
+- Both will copy from the build context
+- Neither will copy files from outside of the build context
 
+```no-highlight
+docker image build -t img_name .
+```
 
+???
 
+- ADD has more features, and should only be used when those features are needed
+- If you copy multiple directories, the contents of those directories are all merged into image target dir
+- The build context is the last arg to build, often `.` aka the current directory
+- You cannot pull files from the parent directory
+
+---
+
+# EXPOSE
+
+- Documentation from image builder to user
+- Indicates ports the container should listen
+- Does not impact ability to publish ports
+- Not needed for container networking
+
+???
+
+- Configuration of the listening port could be changed in app
+- Docker doesn't control what port app listens on
+
+---
+
+# WORKDIR
+
+- A `cd` inside a `RUN` command is lost
+- Use `WORKDIR` to define the current directory
+- Applies to `RUN`, containers, `COPY`, and `ADD`
+
+???
+
+- RUN only captures changes to the filesystem, `cd` only affects current shell
+- WORKDIR is like a persistent `cd`, even affects containers
+
+---
+
+# USER
+
+- Do not use `sudo` with containers
+- `USER` defines a user and group for future containers (including `RUN`)
+
+```no-highlight
+USER root
+RUN useradd -u 5000 app
+USER app:app
+```
+
+???
+
+- Sudo would allow privilege escalation
+- User needs to exist inside of container
+- Good best practice to not run containers as root (or use user namespaces)
+- You can `docker container exec -u` to run commands as another user
+
+---
+
+# VOLUME
+
+- Forces a volume at that path on all future containers
+  - Results in anonymous volumes
+- Breaks ability to modify directory with RUN
+  - Breaks downstream images
+- Not needed to define a volume later
+  - Best done with `docker-compose.yml`
+
+???
+
+- VOLUME has more bad features than good, avoid
+- The volume is forced, but if the user doesn't define the volume, you get an anonymous volume
+- Long guid, without any indication of source container/image
+- During RUN, temp volume is created, initialized with image contents, changes apply in volume, and image layer is only the changes to the container filesystem (note buildkit behaves differently)
+- Users are best off with docker-compose.yml to allow them to extend image (initialize DB)
+- Can also create entrypoint to initialize volume from another image directory
+
+---
+
+# Multi-Stage Builds
+
+```no-highlight
+FROM redis
+FROM nginx
+FROM php
+```
+
+???
+
+- What would happen if this was built?
+  - You'd get a php image
+- Multi-stage builds have multiple FROM lines
+- Each from defines a new image being built, a new stage, separate from the previous stage
+- Multi-stage does not merge images
+- So what is multi-stage good for? ...
+
+---
+
+# Multi-Stage Builds
+
+```no-highlight
+FROM maven:latest
+COPY src/ /usr/src/app/
+RUN mvn package
+CMD jre /usr/src/app/target/app.jar
+```
+
+???
+
+- What happens when we compile our app inside the container?
+  - We ship the entire source code, compiler, and compiled code to prod
+
+---
+
+class: small
+
+# Multi-Stage Builds
+
+```no-highlight
+ARG JAVA_VER=11
+# stage 1: build
+FROM maven:3-jdk-${JAVA_VER} as mvn
+COPY src/ /usr/src/app/
+RUN mvn package -Dmaven.test.skip=true
+CMD jre /usr/src/app/target/app.jar
+
+# stage 2: test
+FROM mvn as test
+RUN mvn test
+
+# stage 3: package
+FROM openjre:${JAVA_VER}-jre as release
+COPY --from=mvn /usr/src/app/target/app.jar /usr/src/app/target/app.jar
+CMD jre /usr/src/app/target/app.jar
+```
+
+???
+
+- Multi-stage allows us to build multiple images but only ship one
+- Can copy files from previous image
+- Full featured compile in docker + minimal image to ship
+- `FROM` has "as" to give stage an alias
+- `FROM` can also be the result of another stage
+- `COPY --from` can pull from previous stages or other images
+
+---
+
+# Developer Workflow
+
+- Run app inside a container with a volume mount to code
+- Configure app to dynamically update with code change for interpreted languages
+- Run a compile as entrypoint for compiled languages
+
+```no-highlight
+docker container run -d -p 8080:80 --name flask \
+  -v "$(pwd):/app:ro" flask-app
+```
+
+???
+
+- Do developers need to build a new image for every change? No.
+- With multi-stage builds, developers often run a build stage rather than a release stage
+- Flask is a python based web server framework, has a development mode to load changes
+- The `-v` gives us a volume mount
+- We need the full path, so we run `$(pwd)` to get the current directory
+- What does `:ro` do? Makes the volume read-only inside the container, only make changes from the host
 
 ---
 
 template: terminal
 
-<asciinema-player src="demo-alpine2.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
+<asciinema-player src="demo-p1-example.cast" cols=100 rows=26 preload=true font-size=17></asciinema-player>
 
 ???
+- Flask app developer workflow
+
 ---
 
+name: registry
+template: inverse
+
+# I was promised a ship
+
+???
+
+- We did run
+- Now we did build
+- What about the ship?
+
+---
+
+# Registry
+
+- Artifact repository for docker images
+- Docker Hub, GCR, ECR, quay.io, etc 
+- Registry container, Harbor, Artifactory, Nexus
+- Based on image tag, push and pull commands
+- Only push and pull new layers
+
+```no-highlight
+$ docker image build -t my-app:1.0 .
+$ docker image tag my-app:1.0 registry.example.com:5000/my-app:1.0
+$ docker image push registry.example.com:5000/my-app:1.0
+$ docker image pull registry.example.com:5000/my-app:1.0
+```
+
+???
+
+- Registry is an open spec from docker, lots of implementations
+  - Some cloud/SaaS based, others are self hosted
+  - Harbor is best featured self hosted option, CNCF
+- This is how we move images from CI servers to dev through prod
+- Docker knows what registry based on the image tag, prefix with host:port
+  - Hub is default, only needs your username
+- You can save/load images, but this includes every layer, lose sharing/efficiency
+
+---
+
+name: orchestration
+template: inverse
+
+# Orchestration
+
+---
+
+# Orchestration
+
+- Manages containers
+- Quorum High Availability
+- Declarative vs Imperative
+- Networking handles replicas and multiple nodes
+
+???
+
+- Running one container is easy, 100's is error prone
+- Raft is the preferred HA quorum model
+  - Requires a majority of managers to be available
+  - If you have 2 nodes and 1 goes down, do you have a majority? No
+  - Quorum: "I can't even", 3 allows 1, 5 allows 2
+  - More managers increases availability but decreases throughput, wait for each manager to sync
+- Declarative: this is my target state, "make it so"
+- Networking:
+  - RR container to container when there are multiple replicas
+  - Publishing a port needs to RR to those replicas too
+  - Networks need to span multiple hosts, overlay networking
 
 ---
 
@@ -934,6 +1550,7 @@ template: inverse
 
 # Recap
 
+- Buffer Overflow
 
 ---
 
