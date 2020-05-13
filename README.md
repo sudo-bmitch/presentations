@@ -57,7 +57,7 @@ There was also a webinar given based on the above talk. Slides are almost identi
 ## Asciinema
 
 - I use the player from: https://github.com/asciinema/asciinema-player
-- The follow commands are used to build a recording:
+- The following commands are used to build a recording:
   ```
   # Install asciinema:
   apt-get install asciinema

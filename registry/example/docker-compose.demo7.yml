@@ -1,0 +1,75 @@
+version: '3.7'
+
+networks:
+  cache:
+    name: cache
+    external: true
+
+volumes:
+  hub-cache:
+    name: hub-cache
+  gitlab-cache:
+    name: gitlab-cache
+
+services:
+  builder:
+    image: docker:dind
+    command: ["--registry-mirror", "https://hub-cache:5000", "--debug"]
+    privileged: true
+    restart: unless-stopped
+    env_file: .env
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/hub-cache:5000/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/gitlab-cache:5000/ca.crt
+      read_only: true
+
+  hub-cache:
+    image: registry:2
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_PROXY_USERNAME: $DOCKER_USER
+      REGISTRY_PROXY_PASSWORD: $DOCKER_TOKEN
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: volume
+      source: hub-cache
+      target: /var/lib/registry
+
+  gitlab-cache:
+    image: registry:2
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://registry.gitlab.com
+      REGISTRY_PROXY_USERNAME: $GITLAB_USER
+      REGISTRY_PROXY_PASSWORD: $GITLAB_TOKEN
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: volume
+      source: gitlab-cache
+      target: /var/lib/registry
+

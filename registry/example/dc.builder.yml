@@ -1,0 +1,41 @@
+version: '3.7'
+
+networks:
+  cache:
+    name: cache
+    external: true
+
+services:
+  builder:
+    image: docker:dind
+    command: ["--registry-mirror", "https://hub-cache:5000", "--debug"]
+    privileged: true
+    restart: unless-stopped
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/github-cache:5000/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/gitlab-cache:5000/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/registry.gitlab.com/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/hub-cache:5000/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/harbor-cache:5000/ca.crt
+      read_only: true
+    - type: bind
+      source: ./ca.pem
+      target: /etc/docker/certs.d/host17-cache:5000/ca.crt
+      read_only: true
+

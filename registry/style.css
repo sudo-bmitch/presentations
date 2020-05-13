@@ -1,13 +1,21 @@
 @import url(https://fonts.googleapis.com/css?family=Roboto);
 @import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
+@import url(https://fonts.googleapis.com/css?family=Montserrat);
 body {
-  font-family: 'Roboto', sans-serif;
-  color: #024;
+  font-family: 'Montserrat', sans-serif;
+  /* color: #024; */
+  color: #fafafa;
+}
+a {
+  color: #fafafa;
 }
 h1, h2, h3 {
-  font-family: 'Roboto', sans-serif;
-  font-weight: normal;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: bold;
 }
+h1 {
+  color: #017cff;
+} 
 code {
   font-family: 'Roboto Mono', monospace;
 }
@@ -22,6 +30,12 @@ code {
 .remark-slide-content    { font-size: 25px; }
 .remark-code             { font-size: 22px; }
 .remark-notes-area .remark-code { font-size: 16px; }
+
+/* move slide number to the left */
+.remark-slide-number {
+  right: auto;
+  left: 20px;
+}
 
 .slide-footer {
   /* border-top: 1px solid #ccc; */
@@ -100,6 +114,20 @@ sub {
   vertical-align: middle;
   text-align: center;
 }
+.pic-rounded-20 img {
+  -webkit-border-radius: 20px;
+  -moz-border-radius: 20px;
+  -ms-border-radius: 20px;
+  -o-border-radius: 20px;
+  border-radius: 20px;
+}
+.pic-rounded-10 img {
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+  border-radius: 10px;
+}
 .pic-circle-50 img {
   max-width: 50%;
   vertical-align: middle;
@@ -122,18 +150,24 @@ sub {
 }
 
 .inverse {
+  /*
   background: #024;
   color: #eee;
   text-shadow: 0 0 20px #222;
+  */
 }
 .inverse h1, .inverse h2 {
+  /*
   color: #eee;
   line-height: 0.8em;
+  */
 }
 
 .terminal {
+  /*
   background: #111;
   color: #eee;
+  */
 }
 
 .impact .content {
@@ -156,6 +190,14 @@ sub {
 }
 .no-column {
   clear: both
+}
+.left-40-column {
+  width: 38%;
+  float: left;
+}
+.right-60-column {
+  width: 58%;
+  float: right;
 }
 
 .align-left {

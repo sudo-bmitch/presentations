@@ -1,0 +1,137 @@
+version: '3.7'
+
+networks:
+  cache:
+    name: cache
+
+volumes:
+  github-cache:
+    name: github-cache
+  gitlab-cache:
+    name: gitlab-cache
+  hub-cache:
+    name: hub-cache
+  harbor-cache:
+    name: harbor-cache
+  host17-cache:
+    name: host17-cache
+
+services:
+  github-cache:
+    image: registry:2-dev
+    restart: unless-stopped
+    environment:
+      REGISTRY_LOG_LEVEL: debug
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://docker.pkg.github.com
+      REGISTRY_PROXY_USERNAME: $GITHUB_USER
+      REGISTRY_PROXY_PASSWORD: $GITHUB_TOKEN
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: volume
+      source: github-cache
+      target: /var/lib/registry
+  gitlab-cache:
+    image: registry:2-dev
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://registry.gitlab.com
+      REGISTRY_PROXY_USERNAME: $GITLAB_USER
+      REGISTRY_PROXY_PASSWORD: $GITLAB_TOKEN
+      REGISTRY_HTTP_ADDR: ":443"
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+      cache:
+        aliases:
+        - registry.gitlab.com
+    dns:
+    - 8.8.8.8
+    - 8.8.4.4
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: volume
+      source: gitlab-cache
+      target: /var/lib/registry
+  hub-cache:
+    image: registry:2-dev
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_PROXY_USERNAME: sudobmitch
+      REGISTRY_PROXY_PASSWORD: 12dfdd15-6aa3-4c93-9920-1625357a84a0
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: volume
+      source: hub-cache
+      target: /var/lib/registry
+  harbor-cache:
+    image: registry:2
+    restart: unless-stopped
+    environment:
+      REGISTRY_LOG_LEVEL: debug
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://192.168.238.101
+      REGISTRY_PROXY_USERNAME: $HARBOR_USER
+      REGISTRY_PROXY_PASSWORD: $HARBOR_TOKEN
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: bind
+      source: /etc/docker/certs.d/192.168.238.101/ca.crt
+      target: /etc/ssl/certs/ca-certificates.crt
+      read_only: true
+    - type: volume
+      source: harbor-cache
+      target: /var/lib/registry
+  host17-cache:
+    image: registry:2
+    restart: unless-stopped
+    environment:
+      REGISTRY_LOG_LEVEL: debug
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_PROXY_REMOTEURL: https://bmitch-host17:5000
+      REGISTRY_PROXY_USERNAME: $HOST17_USER
+      REGISTRY_PROXY_PASSWORD: $HOST17_TOKEN
+      REGISTRY_HTTP_TLS_CERTIFICATE: /host/reg.pem
+      REGISTRY_HTTP_TLS_KEY: /host/reg-key.pem
+    networks:
+    - cache
+    volumes:
+    - type: bind
+      source: .
+      target: /host
+      read_only: true
+    - type: bind
+      source: /etc/ssl/certs/ca-certificates.crt
+      target: /etc/ssl/certs/ca-certificates.crt
+      read_only: true
+    - type: volume
+      source: host17-cache
+      target: /var/lib/registry
+
