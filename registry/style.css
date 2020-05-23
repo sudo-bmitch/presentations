@@ -1,3 +1,8 @@
+/* DockerCon 2020 styles
+ * Font: Montserrat
+ * Colors: #fafafa (white), #017cff (blue), #14152f (dark purple)
+ * Backgrounds: captured as img/dc2020-*.png
+ */
 @import url(https://fonts.googleapis.com/css?family=Roboto);
 @import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
 @import url(https://fonts.googleapis.com/css?family=Montserrat);
@@ -188,8 +193,14 @@ sub {
   width: 48%;
   float: right;
 }
+.center-column {
+  clear: both;
+  width: 30%;
+  margin-left: auto;
+  margin-right: auto;
+}
 .no-column {
-  clear: both
+  clear: both;
 }
 .left-40-column {
   width: 38%;

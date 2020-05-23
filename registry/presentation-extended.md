@@ -123,23 +123,6 @@ template: impact
 
 ---
 
-exclude: true
-
-# Outages Happen
-
-- Network Cut
-- BGP Routing
-- S3
-
-???
-
-- Several years ago, ship anchors cutting undersea cables were common
-- Lately bad BGP data causes us to route all traffic to some misconfigured ISP, and showing us how much we depend on CDNs like CloudFlare
-- AWS's S3 outage showed how much everything depends on it
-- Outages happen all the time, but they are often short lived and only impact a small slice of users
-
----
-
 class: center
 
 # Production Resilience
@@ -198,8 +181,6 @@ template: impact
 
 ---
 
-exclude: true
-
 template: inverse
 
 # Registry Mirroring and Caching
@@ -210,16 +191,16 @@ template: inverse
 
 ---
 
-exclude: true
+template: inverse
 
-template: default
-
+.align-left[
 ```no-highlight
 $ whoami
 - Solutions Architect @ BoxBoat
 - Docker Captain
 - Frequenter of StackOverflow
 ```
+]
 
 .align-center[
 .pic-30[![BoxBoat](img/boxboat-logo-color.png)]
@@ -415,8 +396,6 @@ class: center
 
 ---
 
-exclude: true
-
 template: terminal
 name: demo6
 class: center
@@ -508,8 +487,6 @@ class: center
 
 ---
 
-exclude: true
-
 # Intercepting DNS
 
 ```no-highlight
@@ -536,8 +513,6 @@ services:
 
 ---
 
-exclude: true
-
 class: center
 
 # Intercepting DNS
@@ -553,8 +528,6 @@ class: center
 - Lets see a demo of this working...
 
 ---
-
-exclude: true
 
 template: terminal
 name: demo8
