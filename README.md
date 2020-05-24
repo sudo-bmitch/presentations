@@ -12,6 +12,18 @@ These slides are still under development.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-intro/presentation.html)
 
+
+## DockerCon 2020 - Docker Registry Mirroring and Caching
+
+How to use registry mirroring and caching to optimize your image registry,
+reducing time to build and deploy, while also saving bandwidth.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/registry/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/registry/presentation.pdf)]
+- [Extended presentation](https://sudo-bmitch.github.io/presentations/registry/presentation-extended.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/registry/presentation-extended.pdf)]
+
+
 ## Docker Build
 
 Covering multi-stage, buildkit, buildx, and multi-architecture images from the
@@ -19,7 +31,7 @@ perspective of a Go user.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-build/presentation.html)
 
-## DC2019 - Tips and Tricks From The Docker Captains
+## DockerCon 2019 - Tips and Tricks From The Docker Captains
 
 - [Original presentation](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2019/tips-and-tricks-of-the-captains.pdf)]
@@ -30,7 +42,7 @@ perspective of a Go user.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/bsides-nova/presentation.html)
 
-## DC2018 EU - Tips and Tricks From A Docker Captain
+## DockerCon 2018 EU - Tips and Tricks From A Docker Captain
 
 - [Original presentation](https://sudo-bmitch.github.io/presentations/dc2018eu/tips-and-tricks-of-the-captains.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018eu/tips-and-tricks-of-the-captains.pdf)]
@@ -46,7 +58,7 @@ from DockerCon 2018 in San Francisco](https://drive.google.com/file/d/1RBAl2PfTn
 There was also a webinar given based on the above talk. Slides are almost identical to those above:
 - [Webinar presentation](https://sudo-bmitch.github.io/presentations-webinar-20181212/dc2018eu/tips-and-tricks-of-the-captains.html)
 
-## DC2018 - Frequently Asked Queries from StackOverflow
+## DockerCon 2018 - Frequently Asked Queries from StackOverflow
 
 - [Full presentation](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/dc2018/faq-stackoverflow.pdf)]
