@@ -671,8 +671,8 @@ docker image push local-mirror:5000/${image}
 docker image pull "$localimg"
 docker image pull "$remoteimg"
 
-remoteid=$(docker image inspect "$remoteimg" --format '{.Id}')
-localid=$(docker image inspect "$localimg" --format '{.Id}')
+remoteid=$(docker image inspect "$remoteimg" --format '{{.Id}}')
+localid=$(docker image inspect "$localimg" --format '{{.Id}}')
 
 if [ "$remoteid" != "$localid" ]; then
   docker image tag "$localimg" "$localimg.$datestamp"
