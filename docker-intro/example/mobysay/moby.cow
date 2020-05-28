@@ -1,0 +1,20 @@
+##
+## Docker Cow
+##
+## Source: https://github.com/docker/whalesay
+$the_cow = <<EOC;
+    $thoughts
+     $thoughts
+      $thoughts
+EOC
+$the_cow .= <<'EOC';
+                    ##         .
+              ## ## ##        ==
+           ## ## ## ## ##    ===
+       /"""""""""""""""""\___/ ===
+      {                       /  ===-
+       \______ O           __/
+         \    \         __/
+          \____\_______/
+
+EOC
