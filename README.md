@@ -12,6 +12,12 @@ These slides are still under development.
 
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-intro/presentation.html)
 
+## Docker Images
+
+Images as they are saved on a registry, covering manifests, configs, and layers.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/docker-images/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/docker-images/presentation.pdf)]
 
 ## DockerCon 2020 - Docker Registry Mirroring and Caching
 
@@ -22,7 +28,6 @@ reducing time to build and deploy, while also saving bandwidth.
   [[Download pdf](https://sudo-bmitch.github.io/presentations/registry/presentation.pdf)]
 - [Extended presentation](https://sudo-bmitch.github.io/presentations/registry/presentation-extended.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/registry/presentation-extended.pdf)]
-
 
 ## Docker Build
 
@@ -74,8 +79,9 @@ There was also a webinar given based on the above talk. Slides are almost identi
   # Install asciinema:
   apt-get install asciinema
   # Setup a window:
+  printf '\e[8;26;100t' # set window size to 100x26
   tmux new-session -s preso
-  # Tip: set PS1='\$ ', set window size to: 100x26 with `printf '\e[8;26;100t'`
+  PS1='\n\$ ' # minimal prompt
   # After windows are setup, detach from tmux (Ctrl-B D)
   # Create a recording:
   asciinema rec name.cast -i 3 -c "tmux attach -t preso"
