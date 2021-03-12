@@ -19,6 +19,13 @@ Images as they are saved on a registry, covering manifests, configs, and layers.
 - [Presentation](https://sudo-bmitch.github.io/presentations/docker-images/presentation.html)
   [[Download pdf](https://sudo-bmitch.github.io/presentations/docker-images/presentation.pdf)]
 
+## Regclient
+
+Shows how to use regctl, regsync, and regbot from the regclient projects.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/regclient/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/regclient/presentation.pdf)]
+
 ## DockerCon 2020 - Docker Registry Mirroring and Caching
 
 How to use registry mirroring and caching to optimize your image registry,
