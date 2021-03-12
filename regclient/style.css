@@ -1,0 +1,254 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto);
+@import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
+body {
+  font-family: 'Roboto', sans-serif;
+  color: #024;
+}
+h1, h2, h3 {
+  font-family: 'Roboto', sans-serif;
+  font-weight: normal;
+}
+code {
+  font-family: 'Roboto Mono', monospace;
+}
+a:link {
+  color:inherit;
+}
+a:visited {
+  color:inherit;
+}
+/* make the notes larger */
+.remark-presenter-mode .remark-notes-area {
+  font-size: 24px;
+  left: 40%;
+}
+.remark-container.remark-presenter-mode .remark-slides-area {
+  height: 38%;
+  width: 38%;
+}
+.remark-container.remark-presenter-mode .remark-preview-area {
+  height: 38%;
+  width: 38%;
+}
+.remark-slide-content {
+  font-size: 25px;
+  /* background-image: url('image/bg-content.png'); */
+  /* background-size: contain; */
+}
+.remark-slide-content h1 { font-size: 45px; }
+.remark-slide-content h2 { font-size: 35px; }
+.remark-slide-content h3 { font-size: 30px; }
+.remark-slide-content > p {
+  margin-top: 0px;
+}
+.remark-slide-content > p ~ p {
+  margin-top: 25px;
+}
+.remark-slide-content .remark-code {
+  font-size: 25px;
+}
+.remark-slide-number {
+  left: 15px;
+  bottom: 8px;
+  right: auto;
+}
+.slide-footer {
+  /* border-top: 1px solid #ccc; */
+  font-size: 15pt;
+  text-align: center;
+  position: fixed;
+  bottom: 0px;
+  left: 0px;
+  height: 40px;
+  width: 100%;
+}
+
+/*
+.remark-code             { font-size: 22px; }
+.remark-notes-area .remark-code { font-size: 16px; }
+*/
+
+img {
+  max-width: 95%;
+}
+li p {
+  line-height: 1.25em; 
+}
+
+.remark-code {
+  border-radius: 5px;
+  display: block;
+  padding: .5em;
+  overflow-x: auto;
+  background: #012;
+  color: #ddd;
+}
+.remark-inline-code {
+  background: #ddd;
+  color: #012;
+  padding-right: 0.2em;
+  padding-left: 0.2em;
+}
+.remark-code-line-highlighted     {
+  color: #def;
+  background-color: #048;
+}
+.remark-slide-content .small {
+  font-size: 18px;
+}
+.small .remark-code {
+  font-size: 20px;
+}
+.tiny .remark-code {
+  font-size: 16px;
+}
+
+.title {
+  vertical-align: middle;
+  text-align: center;
+}
+.title h1 {
+  font-size: 75px; 
+}
+.title p {
+  font-size: 45px; 
+}
+
+.pic {
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-80 img {
+  max-width: 80%; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-50 img {
+  max-width: 50%; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-30 img {
+  max-width: 30%; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-rounded-20 img {
+  -webkit-border-radius: 20px;
+  -moz-border-radius: 20px;
+  -ms-border-radius: 20px;
+  -o-border-radius: 20px;
+  border-radius: 20px;
+}
+.pic-rounded-10 img {
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+  border-radius: 10px;
+}
+.pic-circle-50 img {
+  max-width: 50%;
+  vertical-align: middle;
+  text-align: center;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+  border-radius: 50%;
+}
+.pic-circle-70 img {
+  max-width: 70%;
+  vertical-align: middle;
+  text-align: center;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+  border-radius: 50%;
+}
+
+.blur {
+    -webkit-filter: blur(5px) opacity(.3);
+    -moz-filter: blur(10px) opacity(.3);
+    -o-filter: blur(5px) opacity(.3);
+    -ms-filter: blur(5px) opacity(.3);
+    filter: blur(5px) opacity(.3);
+}
+
+.inverse {
+  background: #024;
+  color: #eee;
+  text-shadow: 0 0 20px #222;
+}
+.inverse h1, .inverse h2 {
+  color: #eee;
+  line-height: 0.8em;
+}
+
+.terminal {
+  background: #111;
+  color: #eee;
+}
+
+.impact .content {
+  text-align: left;
+  padding-left: 10%;
+  padding-right: 10%;
+}
+.impact h1, .impact h2 {
+  text-align: center;
+}
+
+/* Two-column layout */
+.left-column {
+  width: 48%;
+  float: left;
+}
+.right-column {
+  width: 48%;
+  float: right;
+}
+.center-column {
+  clear: both;
+  width: 30%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.no-column {
+  clear: both;
+}
+.left-40-column {
+  width: 38%;
+  float: left;
+}
+.right-60-column {
+  width: 58%;
+  float: right;
+}
+
+.align-left {
+  text-align: left;
+}
+.align-center {
+  text-align: center;
+}
+.align-right {
+  text-align: right;
+}
+
+.v-align-top {
+  vertical-align: top;
+}
+.v-align-mid {
+  display: inline-block;
+  vertical-align: middle;
+}
+.v-align-bottom {
+  vertical-align: bottom;
+}
+
+.no-bullets li {
+  list-style-type: none;
+}
+

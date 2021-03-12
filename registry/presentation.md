@@ -737,7 +737,7 @@ name: manual-mirror-reasons
 
 ```no-highlight
 ARG REGISTRY=docker.io
-FROM ${REGISTRY}/alpine:3.9
+FROM ${REGISTRY}/library/alpine:3.9
 ...
 ```
 
