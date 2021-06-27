@@ -5,6 +5,8 @@ the desktop, you can press "P" to see presenter notes. PDF's have also been
 included when possible. For the slides with a live terminal, use "W" and "E" to
 pause/play the recording.
 
+**NOTE FOR FIREFOX USERS**: Firefox >= v68 will not play the embedded asciinema files in some of these presentations due to blocking of CORS. Symptom: player window shows a spinner without ever loading the video. There is a workaround available: setting ```privacy.file_unique_origin``` to ```false``` (via ```about:config```).  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details. It's recommended to return this setting to its default value of ```true``` once you're done.
+
 ## Docker Intro
 
 Covering containers, images, networks, volumes, security, and building images.
