@@ -5,6 +5,12 @@ the desktop, you can press "P" to see presenter notes. PDF's have also been
 included when possible. For the slides with a live terminal, use "W" and "E" to
 pause/play the recording.
 
+Note: if you have cloned the repo locally, and are viewing the presentations by double clicking the html files, some embedded content may not display. There are several possible solutions:
+
+1. View the content online, everything should be available from the links to GitHub pages.
+2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
+3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
+
 ## Docker Intro
 
 Covering containers, images, networks, volumes, security, and building images.
@@ -68,6 +74,7 @@ Captain [Adrian Mouat](https://twitter.com/adrianmouat). Check out [his talk
 from DockerCon 2018 in San Francisco](https://drive.google.com/file/d/1RBAl2PfTnn-IZWzQEoiISaXh4GQOpjxL/view).
 
 There was also a webinar given based on the above talk. Slides are almost identical to those above:
+
 - [Webinar presentation](https://sudo-bmitch.github.io/presentations-webinar-20181212/dc2018eu/tips-and-tricks-of-the-captains.html)
 
 ## DockerCon 2018 - Frequently Asked Queries from StackOverflow
@@ -80,9 +87,10 @@ There was also a webinar given based on the above talk. Slides are almost identi
 
 ## Asciinema
 
-- I use the player from: https://github.com/asciinema/asciinema-player
+- I use the player from: <https://github.com/asciinema/asciinema-player>
 - The following commands are used to build a recording:
-  ```
+
+  ```shell
   # Install asciinema:
   apt-get install asciinema
   # Setup a window:
@@ -102,4 +110,3 @@ There was also a webinar given based on the above talk. Slides are almost identi
 
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public
 License](LICENSE)
-
