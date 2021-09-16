@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Secure Supply Chain - Brandon Mitchell</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(style.css);
+    </style>
+    <style>
+      @import url(asciinema-player.css);
+    </style>
+    <!-- <link rel="stylesheet" type="text/css" href="asciinema-player.css" /> -->
+  </head>
+  <body>
+    <textarea id="source">
+
+???
+
+Presentation content is in presentation.md
+
+    </textarea>
+    <!--
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    -->
+    <script src="remark-latest.min.js"></script>
+    <script src="asciinema-player.js"></script>
+    <script src="remark-asciinema-keys.js"></script>
+    <script>
+      var slideshow = remark.create({
+        sourceUrl: 'presentation.md',
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'remark',
+        highlightLines: true,
+        highlightSpans: true
+      });
+    </script>
+  </body>
+</html>
+
