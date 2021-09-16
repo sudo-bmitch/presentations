@@ -11,6 +11,21 @@ Note: if you have cloned the repo locally, and are viewing the presentations by 
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
 
+## Secure Supply Chain - 2021
+
+This is an overview of what it takes to build a secure software supply chain, to tooling available, and where development is still in progress.
+This also covers the value of reproducible builds.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/secure-supply-chain-2021/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/secure-supply-chain-2021/presentation.pdf)]
+
+## Docker Registry Mirroring - 2021
+
+This is a workshop on setting up your own local registry mirror, including the process to garbage collect stale images.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/reg-mirror-2021/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/reg-mirror-2021/presentation.pdf)]
+
 ## Docker Intro
 
 Covering containers, images, networks, volumes, security, and building images.
