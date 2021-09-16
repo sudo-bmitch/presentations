@@ -1,0 +1,47 @@
+version: 1
+creds:
+  - registry: registry:5000
+    tls: disabled
+defaults:
+  parallel: 1
+  interval: 60m
+  timeout: 600s
+scripts:
+  - name: delete old backups
+    script: |
+      reg = "registry:5000"
+      backupExpr = "^bkup%-(.+)%-(%d+)$"
+      backupLimit = 3
+      -- list all repos, could replace this with a fixed list
+      repos = repo.ls(reg)
+      table.sort(repos)
+      -- loop over each repo
+      for k, r in pairs(repos) do
+        -- list all tags in the repo
+        tags = tag.ls(reg .. "/" .. r)
+        table.sort(tags)
+        backupTags = {}
+        for k, t in pairs(tags) do
+          -- search for tags matching backup expression (e.g. bkup-latest-20210102)
+          if string.match(t, backupExpr) then
+            tOrig, tVer = string.match(t, backupExpr)
+            -- backupTags is a nested table, e.g. backupTags[latest]={.. backup tags for latest ..}
+            if not backupTags[tOrig] then
+              backupTags[tOrig] = {}
+            end
+            table.insert(backupTags[tOrig], t)
+          end
+        end
+        for tOrig, tVers in pairs(backupTags) do
+          -- if any original tag has too many backups
+          if #tVers > backupLimit then
+            -- delete the first n tags to get back to the limit, sorted to delete oldest backups first
+            table.sort(tVers)
+            delVers = {unpack(tVers, 1, #tVers - backupLimit)}
+            for k, t in pairs(delVers) do
+              -- log("Deleting old backup: " .. reg .. "/" .. r .. ":" .. t)
+              tag.delete(reg .. "/" .. r .. ":" .. t)
+            end
+          end
+        end
+      end

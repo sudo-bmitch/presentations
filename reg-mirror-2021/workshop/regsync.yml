@@ -1,0 +1,27 @@
+version: 1
+creds:
+  - registry: registry:5000
+    tls: disabled
+  - registry: docker.io
+    user: "{{env \"HUB_USER\"}}"
+    pass: "{{file \"/home/appuser/.docker/hub_token\"}}"
+defaults:
+  ratelimit:
+    min: 60
+    retry: 15m
+  parallel: 2
+  interval: 60m
+  backup: "{{ $t := time.Now }}{{printf \"bkup-%s-%d%d%d\" .Ref.Tag $t.Year $t.Month $t.Day}}"
+sync:
+  - source: busybox:latest
+    target: registry:5000/library/busybox:latest
+    type: image
+  - source: alpine
+    target: registry:5000/library/alpine
+    type: repository
+    tags:
+      allow:
+      - "latest"
+      - "3"
+      - "3.13"
+      - "3.14"

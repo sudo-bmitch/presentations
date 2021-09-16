@@ -1,0 +1,41 @@
+version: '2.4'
+
+services:
+  registry:
+    image: "registry:2"
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: "/var/lib/registry"
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_VALIDATION_DISABLED: "true"
+    volumes:
+      - "registry-data:/var/lib/registry"
+    ports:
+      - "127.0.0.1:5000:5000"
+
+  regsync:
+    image: "regclient/regsync:latest"
+    command:
+      - "-c"
+      - "/home/appuser/regsync.yml"
+      - "server"
+    restart: unless-stopped
+    environment:
+      - HUB_USER
+    volumes:
+      - "$HOME/.docker/hub_token:/home/appuser/.docker/hub_token"
+      - "./regsync.yml:/home/appuser/regsync.yml"
+
+  regbot:
+    image: "regclient/regbot:latest"
+    command:
+      - "-c"
+      - "/home/appuser/regbot.yml"
+      - "server"
+    restart: unless-stopped
+    volumes:
+      - "./regbot.yml:/home/appuser/regbot.yml"
+
+volumes:
+  registry-data:
+  
