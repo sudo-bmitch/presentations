@@ -96,12 +96,18 @@ $ whoami
 ```
 
 .align-center[
-.pic-30[![BoxBoat](img/boxboat-logo-color.png)]
+.pic-30[![BoxBoat](img/boxboat-ibm-logo-color.png)]
 .pic-30[![Docker Captain](img/docker-captain.png)]
 .pic-30[![StackOverflow](img/stackoverflow-logo.png)]
 ]
 
 ???
+
+- Who am I?
+  - By day I'm a consultant that helps paid clients transition to containers.
+  - In my downtime I answer questions on StackOverflow.
+  - Helping to spread knowledge about Docker through StackOverflow and
+    presentations like this was my path to the Captains program.
 
 ---
 
@@ -121,13 +127,13 @@ template: inverse
 
 ---
 
-class: center
+class: center,middle
 
 .pic-80[![Alt Text](img/image.png)]
 
 ---
 
-class: center
+class: center,middle
 
 .pic-80[.pic-rounded-10[![Alt Text](img/image.png)]]
 
@@ -158,3 +164,28 @@ class: center
 <asciinema-player src="file.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ---
+
+template: title
+name: thanks
+
+# Thank You
+
+.no-bullets[
+- github.com/sudo-bmitch/presentations
+]
+
+.content[
+.left-column[
+.pic-80[![Slides QR](img/github-qr.png)]
+]
+.right-column[.align-right[.no-bullets[
+<br>
+- Brandon Mitchell
+- Twitter: @sudo_bmitch
+- GitHub: sudo-bmitch
+]]]
+]
+
+???
+
+- These slides are available online in my git repo, the link is there and the QR code will take you there too
