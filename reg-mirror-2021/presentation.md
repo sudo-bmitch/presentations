@@ -260,11 +260,11 @@ template: inverse
 
 class: center, middle
 
-[https://github.com/sudo-bmitch/presentations/tree/main/reg-mirror/workshop/](workshop/README.md)
+[https://github.com/sudo-bmitch/presentations/tree/main/reg-mirror-2021/workshop](workshop/README.md)
 
 ???
 
-- Share link in chat: <https://github.com/sudo-bmitch/presentations/tree/main/reg-mirror/workshop/>
+- Share link in chat: <https://github.com/sudo-bmitch/presentations/tree/main/reg-mirror-2021/workshop>
 - If you'd like to do the workshop yourself, there's a link to the repo where you can go through each step
 - Note that there's a compose file and other yml's in there for an easy button, but they skip a few steps we'll do in the workshop, so I'd recommend following the README.md
 
