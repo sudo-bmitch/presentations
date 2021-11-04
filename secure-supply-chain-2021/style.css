@@ -73,6 +73,9 @@ li p {
 .title p {
   font-size: 45px; 
 }
+.small {
+  font-size: 16px; 
+}
 sub {
   font-size: 12px;
 }
@@ -83,6 +86,11 @@ sub {
 }
 .pic-80 img {
   max-width: 80%; 
+  vertical-align: middle;
+  text-align: center;
+}
+.pic-70 img {
+  max-width: 70%; 
   vertical-align: middle;
   text-align: center;
 }

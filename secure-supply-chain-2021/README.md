@@ -4,4 +4,7 @@
 
 Image credits:
 
-- https://www.flickr.com/photos/photohome_uk/1494590209
+- background: <https://www.flickr.com/photos/photohome_uk/1494590209>
+- chain.jpg: <https://unsplash.com/photos/t1OalCBUYRc>
+- matrix-screen.jpg: <https://unsplash.com/photos/FXFz-sW0uwo>
+- news.jpg: <https://unsplash.com/photos/JYPDh4ter10>

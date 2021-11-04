@@ -64,7 +64,7 @@ layout: false
 name: ttitle
 template: ttitle
 
-# Secure Supply Chains
+# State of the Secure Software Supply Chain
 
 .left-column[
 .pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
@@ -115,38 +115,21 @@ template: inverse
 
 ---
 
-# Supply Chain Attacks in the News
-
-- Dependency Confusion Attacks
-- SolarWinds
-???
-
-- Dependency confusion attacks showed up from researchers registering names in public repositories for things like Python and Node that were being used by companies internally
-  - the tooling preferred those public repositories
-- SolarWinds attacked the build infra itself, resulting in signed malicious programs from a trusted vendor
---
-
-- White House Executive Order
-???
-
-- As a result, we've seen the whitehouse EO to improve supply chain security
---
-
-- Nothing new: Ken Thompson's 1984: Reflections on Trusting Trust
-???
-
-- And none of this is new, back in 1984 Thompson was asking how can we know compilers are trusted
-
----
-
+.no-column[
 # Attackers Have a Variety of Methods
-
+]
+.left-40-column[
 - Physical compromise
 - Phishing and social engineering
 - Unpatched applications
 - Zero days
 - Malicious insider
 - Supply chain attacks
+]
+.right-60-column[
+  .pic[.pic-rounded-10[![Atacker computer](img/matrix-screen.jpg)]]
+  .center[.small[unsplash.com/photos/FXFz-sW0uwo]]
+]
 
 ???
 
@@ -160,45 +143,83 @@ template: inverse
 
 ---
 
+.left-column[
 # Supply Chain Attack
 
 - Colonial Pipeline
 - Find a soft upstream target before production
 - Build servers and dependencies
-
+]
+.right-column[
+  .center[.pic[![xkcd Dependencies comic](img/xkcd.2347.dependency.png)]]
+  .center[.small[xkcd.com/2347]]
+]
 ???
 
 - Physical example of this is Colonial Pipeline:
   - to impact transportation you don't attack every vehicle
   - or every gas station
-  - or event the pipeline.
+  - or even the pipeline.
   - Instead you find a reused password for the VPN interface to the billing system.
 - Attackers find a soft target upstream rather than compromising the target directly
 - In software, rather than compromising the production servers, you can compromise the build servers or upstream dependencies
-
----
-
-class: center, middle
-
-.pic-80[![xkcd Dependencies comic](img/xkcd.2347.dependency.png)]
-
-.small[xkcd.com/2347]
-
-???
-
 - Or as xkcd shows, you find the lone developer of openssl that every other project depends upon
 
 ---
 
-# Securing the Supply Chain
+.right-column[
+  .center[.pic-70[.pic-rounded-10[![Newspapers](img/news.jpg)]]]
+  .center[.small[unsplash.com/photos/JYPDh4ter10]]
+]
+.left-column[
+# Supply Chain Attacks in the News
 
+- Dependency Confusion Attacks
+- Various NPM library attacks
+- SolarWinds
+]
+???
+
+- Dependency confusion attacks showed up from researchers registering names in public repositories for things like Python and Node that were being used by companies internally
+  - the tooling preferred those public repositories
+- There have been multiple attacks on NPM and similar package managers to replace popular packages with a new version containing a trojan
+  - This could be a developer turned bad, OSS developer adding a new maintainer, or a developer that themselves gets hacked (e.g. credential stuffing)
+- SolarWinds attacked the build infra itself, resulting in signed malicious programs from a trusted vendor
+  - Some look down on SolarWinds for getting hacked, but this was an APT that didn't want to be detected, can you say for sure you aren't already compromised by a similar attack?
+--
+
+.left-column[
+- White House Executive Order
+]
+???
+
+- As a result, we've seen the White House EO to improve supply chain security
+--
+
+.left-column[
+- Nothing new: Ken Thompson's 1984: Reflections on Trusting Trust
+]
+???
+
+- And none of this is new, back in 1984 Thompson was asking how can we know compilers are trusted
+
+---
+
+.no-column[
+# Securing the Supply Chain
+]
+
+.left-40-column[
 - Validate inputs
 - Harden build infrastructure
 - Verify the process
 - Signing result
 - Distribution
 - Admission control
-
+]
+.right-60-column[
+  .pic[.pic-rounded-10[![CI Pipeline](img/SSC-CI-CD.png)]]
+]
 ???
 
 - Validating the inputs
@@ -206,7 +227,7 @@ class: center, middle
   - Scanning and verifying external libraries/tools
 - Hardening the build infrastructure
   - Solving the "lower turtle" problem
-  - Builder -> CI -> OS -> Hardware -> Physical
+  - Builder -> CI -> Orchestrator -> OS -> Cloud -> Hardware -> Physical
 - Verifying the build process
   - "How do we know you did what you said you did?"
 - Signing the build result or using a transparency log
@@ -253,6 +274,7 @@ template: inverse
   - CycloneDX started with security, adding licensing
 - You don't just want an SBoM for your artifact/image, you also want one for the build infrastructure, you'll have them for every dependency you ingest, and particularly for a SaaS, you'll have them for your runtime infrastructure
 - It's not just generating the SBoM, you need to distribute it and use it, and those are very much under development
+  - SBoMs themselves should be static/reproducible, but a vulnerability scan using the SBoM data may change as new vulnerabilities are discovered, and it does us no good if we don't have a way to get the SBoMs to the scanners or if we don't have scanners that use SBoM data
 
 ---
 
@@ -283,6 +305,7 @@ template: inverse
 # Signing
 
 - [PARSEC](https://github.com/parallaxsecond/parsec): access to hardware security, development
+- [Vault](https://www.vaultproject.io/): transit plugin gives a software equivalent to HSMs
 - [TUF](https://github.com/theupdateframework): framework for signing, stable
 - [Notary v2](https://github.com/notaryproject/notaryproject): signs artifacts on an OCI registry, design/prototype
 - [Cosign](https://github.com/sigstore/cosign): competing image signing project, early stable
@@ -292,6 +315,9 @@ template: inverse
 
 - PARSEC
   - API to access hardware security (e.g. Hardware Security Module (HSM))
+- Vault
+  - I've also been looking at Vault with their transit plugin to sign without ever accessing the private key directly, effectively a software based HSM, but it can be backed by an HSM
+  - Vault conveniently integrates with OIDC for auth which can be provided by Spire
 - TUF - The Update Framework
   - Used for securely pushing software updates in multiple ecosystems
   - Prevents rollback, replay, fast forward, and similar attacks
@@ -312,7 +338,7 @@ template: inverse
   - Google/sigstore project for image signing
   - Pushes signed data to registry as separate tag
   - Also integrates with their Rekor project for transparency logs / time stamping
-  - The 1.0 release feels rushed, still a lot of big features being developed
+  - The 1.0 release feels rushed, still a lot of big features being developed (changing signature contents, signature envelope, and multiple signatures doesn't have a good workflow)
 - Rekor
   - Google/sigstore transparency log
   - Allows build tooling to push immutable tamper resistent entries that can be later queried
