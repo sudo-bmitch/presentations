@@ -177,6 +177,7 @@ template: inverse
 - Dependency Confusion Attacks
 - Various NPM library attacks
 - SolarWinds
+- Log4j
 ]
 ???
 
@@ -186,6 +187,7 @@ template: inverse
   - This could be a developer turned bad, OSS developer adding a new maintainer, or a developer that themselves gets hacked (e.g. credential stuffing)
 - SolarWinds attacked the build infra itself, resulting in signed malicious programs from a trusted vendor
   - Some look down on SolarWinds for getting hacked, but this was an APT that didn't want to be detected, can you say for sure you aren't already compromised by a similar attack?
+- Log4j wasn't even an attack, but it shows how a vulnerability upstream ripples through
 --
 
 .left-column[
@@ -226,6 +228,7 @@ template: inverse
   - Multiple approvers on every commit (2 person rule)
   - Scanning and verifying external libraries/tools
 - Hardening the build infrastructure
+  - Build infrastructure needs to be as secure as prod
   - Solving the "lower turtle" problem
   - Builder -> CI -> Orchestrator -> OS -> Cloud -> Hardware -> Physical
 - Verifying the build process
@@ -275,6 +278,7 @@ template: inverse
 - You don't just want an SBoM for your artifact/image, you also want one for the build infrastructure, you'll have them for every dependency you ingest, and particularly for a SaaS, you'll have them for your runtime infrastructure
 - It's not just generating the SBoM, you need to distribute it and use it, and those are very much under development
   - SBoMs themselves should be static/reproducible, but a vulnerability scan using the SBoM data may change as new vulnerabilities are discovered, and it does us no good if we don't have a way to get the SBoMs to the scanners or if we don't have scanners that use SBoM data
+  - SBOMs are what we need to say "where is Log4j in this org?"
 
 ---
 
@@ -283,7 +287,6 @@ template: inverse
 - Verifying truth and authenticaty
 - [in-toto](https://github.com/in-toto/in-toto): verify each build step was performed, development
 - [Spiffe/Spire](https://github.com/spiffe/spire): verify trust in the agents and workloads, stable
-- [Keylime](https://github.com/keylime/keylime): hardware root of trust, stable
 
 ???
 
@@ -297,26 +300,27 @@ template: inverse
   - Provides short term keys to attested agents and workloads
   - Agents could be attested to server by Hardware (TPM/HSM/TEE), Cloud APIs, or other methods. Given SVIDs for associated workloads
   - Workloads attested to Agent with OS (pid), K8s, docker, and similar. Given their individual SVID (x509 cert or JWT token)
-- Keylime
-  - Integrates with TPM (perhaps TEE too) to implement hardware rooted cryptographic trust of remote machines
 
 ---
 
 # Signing
 
-- [PARSEC](https://github.com/parallaxsecond/parsec): access to hardware security, development
+- KMS and HSM
 - [Vault](https://www.vaultproject.io/): transit plugin gives a software equivalent to HSMs
 - [TUF](https://github.com/theupdateframework): framework for signing, stable
-- [Notary v2](https://github.com/notaryproject/notaryproject): signs artifacts on an OCI registry, design/prototype
-- [Cosign](https://github.com/sigstore/cosign): competing image signing project, early stable
+- [Cosign](https://github.com/sigstore/cosign): image and artifact signing, early stable
 - [Rekor](https://github.com/sigstore/rekor): transparency logs, development
+- [Notary v2](https://github.com/notaryproject/notaryproject): signs artifacts, design/prototype
 
 ???
 
-- PARSEC
-  - API to access hardware security (e.g. Hardware Security Module (HSM))
-- Vault
-  - I've also been looking at Vault with their transit plugin to sign without ever accessing the private key directly, effectively a software based HSM, but it can be backed by an HSM
+- KMS: key management service
+  - often provided by clouds to perform signing without exposing private keys
+- HSM: hardware security module
+  - physical way to secure keys, see also TPM
+- Vault (Hashicorp)
+  - Secrets management platform
+  - Transit plugin turns vault into a KMS
   - Vault conveniently integrates with OIDC for auth which can be provided by Spire
 - TUF - The Update Framework
   - Used for securely pushing software updates in multiple ecosystems
@@ -324,6 +328,15 @@ template: inverse
   - Handles revoking of keys and signatures
   - Hierarchical set of keys with different roles (root, target, snapshot, timestamp)
   - Hierarchical metadata being signed with each key (each target, multiple targets assembled into snapshot, snapshots are timestamped)
+- Cosign
+  - Google/sigstore project for image signing
+  - Pushes signed data to registry as separate tag
+  - Also integrates with their Rekor project for transparency logs / time stamping
+  - The 1.0 release feels rushed, still a lot of big features being developed (changing signature contents, signature envelope, and multiple signatures doesn't have a good workflow)
+- Rekor
+  - Google/sigstore transparency log
+  - Allows build tooling to push immutable tamper resistent entries that can be later queried
+  - Not 1.0, public instance is not stable, no SLO, periodically reset without notice
 - Notary v2
   - History: Notary v1 not adopted by the community
     - usage was client side (not server enforced)
@@ -334,22 +347,36 @@ template: inverse
   - Ability to copy artifacts and signatures between registries
   - Support for disconnected environments
   - Still in design and prototype phase
-- Cosign
-  - Google/sigstore project for image signing
-  - Pushes signed data to registry as separate tag
-  - Also integrates with their Rekor project for transparency logs / time stamping
-  - The 1.0 release feels rushed, still a lot of big features being developed (changing signature contents, signature envelope, and multiple signatures doesn't have a good workflow)
-- Rekor
-  - Google/sigstore transparency log
-  - Allows build tooling to push immutable tamper resistent entries that can be later queried
-  - Not 1.0, public instance is not stable, no SLO, periodically reset without notice
+  - Driven by MS/AWS, requires a custom forked registry, works with Azure
 
 ---
 
-# Distribution and Admission Control
+# Admission Control
+
+- [OPA/Gatekeeper](https://github.com/open-policy-agent/gatekeeper), stable
+- [Kyverno](https://kyverno.io/), stable
+- [Connaisseur](https://github.com/sse-secure-systems/connaisseur), stable
+
+???
+
+- OPA/Gatekeeper
+  - Open Policy Agent with their Rego language provides a way to verify policies
+  - Gatekeeper applies OPA as a Kubernetes admission controller
+  - Functionality being added for image signing
+- Kyverno
+  - Another admission controller that works with yaml files instead of the Rego DSL
+  - sigstore/cosign is adding a webhook (cosigned) to make integration easier
+- Connaisseur
+  - Focused on just verifying image signing regardless of how images were signed (nv1, cosign, nv2 is planned)
+
+---
+
+# Related Projects / Groups
 
 - [OCI](https://github.com/opencontainers/), stable with new development
-- [OPA/Gatekeeper](https://github.com/open-policy-agent/gatekeeper), stable
+- [CNCF Security TAG](https://github.com/cncf/tag-security) and Supply Chain WG
+- [OpenSSF](https://openssf.org/)
+- [SLSA](https://github.com/slsa-framework/slsa)
 
 ???
 
@@ -364,21 +391,6 @@ template: inverse
     - still in development
     - would allow signatures to define their association with a parent image manifest
     - multiple signatures could be pushed per image and queried
-- OPA/Gatekeeper
-  - Open Policy Agent with their Rego language provides a way to verify policies
-  - Gatekeeper applies OPA as a Kubernetes admission controller
-  - Once preceeding steps are complete, this will need functionality added for image signing
-
----
-
-# Related Projects / Groups
-
-- [CNCF Security TAG](https://github.com/cncf/tag-security) and Supply Chain WG
-- [OpenSSF](https://openssf.org/)
-- [SLSA](https://github.com/slsa-framework/slsa)
-
-???
-
 - CNCF Security TAG and Supply Chain WG
   - White paper produced on Secure Supply Chain Best Practices
   - Now working on a Secure Software Factory Reference Architecture
