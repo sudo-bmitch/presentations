@@ -165,7 +165,6 @@ e66264b9877...  -
 ```
 
 ???
-
 - This is pushed to the registry and tracked by a digest of the content
 - If a byte of json, or a tar file, is changed, it will have a different digest on the registry
 - If multiple things point to the same digest, you can deduplicate it
