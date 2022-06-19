@@ -11,6 +11,14 @@ Note: if you have cloned the repo locally, and are viewing the presentations by 
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
 
+## OCI Layout - Stop Putting Everything in Registries
+
+How to use OCI Layout in CI pipelines to work with images before pushing them.
+This also covers SBOMs, vulnerability scanning, and image signing, before the image is publicly available.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/oci-layout/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-layout/presentation.pdf)]
+
 ## Secure Supply Chain - 2021
 
 This is an overview of what it takes to build a secure software supply chain, to tooling available, and where development is still in progress.
