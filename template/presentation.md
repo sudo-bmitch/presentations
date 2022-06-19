@@ -90,9 +90,10 @@ template: default
 
 ```no-highlight
 $ whoami
+- Brandon Mitchell
 - Solutions Architect @ BoxBoat
 - Docker Captain
-- Frequenter of StackOverflow
+- StackOverflow, OCI, CNCF
 ```
 
 .align-center[
