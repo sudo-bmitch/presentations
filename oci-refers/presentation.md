@@ -51,18 +51,11 @@ name: agenda
 
 # Agenda
 
-.left-column[
-- [topic 1](#topic-1)
-- [topic 2](#topic-2)
-- [topic 3](#topic-3)
-- [topic 4](#topic-4)
-]
-.right-column[
-- [topic 5](#topic-5)
-- [topic 6](#topic-6)
-- [topic 7](#topic-7)
-- [topic 8](#topic-8)
-]
+- [OCI Intro](#oci-intro)
+- [Artifacts](#oci-artifacts)
+- [Working Group](#working-group)
+- [regclient](#regclient)
+- [Demos](#demos)
 
 ---
 layout: false
@@ -112,6 +105,7 @@ $ whoami
 
 ---
 
+name: oci-intro
 template: inverse
 
 # OCI Images
@@ -289,6 +283,7 @@ class: center,middle
 
 ---
 
+name: oci-artifacts
 template: inverse
 
 # Not Just Container Images
@@ -388,6 +383,7 @@ $ regctl blob get localhost:5000/helm-charts/spire/spire \
 
 ---
 
+name: working-group
 template: inverse
 
 # Working Group
@@ -511,6 +507,7 @@ class: center,middle
 
 ---
 
+name: regclient
 template: inverse
 
 # regclient
@@ -557,6 +554,7 @@ template: inverse
 
 ---
 
+name: demos
 template: inverse
 
 # Demo
