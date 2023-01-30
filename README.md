@@ -16,8 +16,8 @@ Note: if you have cloned the repo locally, and are viewing the presentations by 
 This is a walk-through and demonstration of the OCI reference type working group result.
 It shows how artifacts like SBOMs and signatures can be associated with images in an OCI registry.
 
-- [Presentation](https://sudo-bmitch.github.io/presentations/oci-referrers/presentation.html)
-  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-referrers/presentation.pdf)]
+- [Presentation](https://sudo-bmitch.github.io/presentations/oci-referrers-2023/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-referrers-2023/presentation.pdf)]
 
 ## OCI Layout - Stop Putting Everything in Registries
 
