@@ -11,12 +11,13 @@ Note: if you have cloned the repo locally, and are viewing the presentations by 
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
 
-## OCI Refers
+## Modifying the Immutable: Attaching Artifacts to OCI Images
 
-A demo of how artifacts can be associated with images using the OCI Refers field and regclient.
+This is a walk-through and demonstration of the OCI reference type working group result.
+It shows how artifacts like SBOMs and signatures can be associated with images in an OCI registry.
 
-- [Presentation](https://sudo-bmitch.github.io/presentations/oci-refers/presentation.html)
-  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-refers/presentation.pdf)]
+- [Presentation](https://sudo-bmitch.github.io/presentations/oci-referrers/presentation.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-referrers/presentation.pdf)]
 
 ## OCI Layout - Stop Putting Everything in Registries
 

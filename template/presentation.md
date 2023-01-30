@@ -5,7 +5,7 @@ name: base
 layout: true
 template: empty
 background-image: none
-<div class="slide-footer">@sudo_bmitch</div>
+<div class="slide-footer">@bmitch@fosstodon.org</div>
 ---
 name: ttitle
 layout: true
@@ -69,7 +69,7 @@ layout: false
 name: ttitle
 template: ttitle
 
-# Tips and Tricks<br>From A Docker Captain
+# Template<br>Presentation
 
 .left-column[
 .pic-circle-70[![Brandon Mitchell](img/bmitch.jpg)]
@@ -77,6 +77,7 @@ template: ttitle
 .right-column[.v-align-mid[.no-bullets[
 <br>
 - Brandon Mitchell
+- Mastodon: @bmitch@fosstodon.org
 - Twitter: @sudo_bmitch
 - GitHub: sudo-bmitch
 ]]]
@@ -92,8 +93,8 @@ template: default
 $ whoami
 - Brandon Mitchell
 - Solutions Architect @ BoxBoat
-- Docker Captain
-- StackOverflow, OCI, CNCF
+- OCI Maintainer, regclient, Docker Captain
+- StackOverflow, CNCF, OpenSSF
 ```
 
 .align-center[
@@ -106,9 +107,9 @@ $ whoami
 
 - Who am I?
   - By day I'm a consultant that helps paid clients transition to containers.
-  - In my downtime I answer questions on StackOverflow.
-  - Helping to spread knowledge about Docker through StackOverflow and
-    presentations like this was my path to the Captains program.
+  - I'm also a maintainer for OCI and a Docker Captain.
+  - In my downtime I developer some side projects like regclient, answer questions
+    on StackOverflow, and I'm often seen on CNCF and OpenSSF meetings
 
 ---
 
@@ -182,6 +183,7 @@ name: thanks
 .right-column[.align-right[.no-bullets[
 <br>
 - Brandon Mitchell
+- Mastodon: @bmitch@fosstodon.org
 - Twitter: @sudo_bmitch
 - GitHub: sudo-bmitch
 ]]]
