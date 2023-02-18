@@ -1,4 +1,4 @@
-FROM golang:1.12
+FROM golang
 RUN adduser --disabled-password --gecos appuser appuser
 WORKDIR /src
 COPY . /src/
