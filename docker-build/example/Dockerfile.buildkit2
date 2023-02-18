@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine as dev
+FROM golang:alpine as dev
 RUN apk add --no-cache git ca-certificates
 RUN adduser -D appuser
 WORKDIR /src
