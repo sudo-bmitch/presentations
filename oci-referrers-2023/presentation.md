@@ -53,9 +53,9 @@ name: agenda
 
 - [Container Images](#container-images)
 - [Associating Artifacts](#associating-artifacts)
-- [Referrers API](#referrers-api)
+- [Referrers Response](#referrers-response)
 - [Demo](#demo)
-- [Next Steps](#next-steps)
+- [Status](#status)
 
 ---
 layout: false
@@ -85,14 +85,16 @@ template: default
 ```no-highlight
 $ whoami
 - Brandon Mitchell
-- Solutions Architect @ BoxBoat
+- Solutions Architect @ BoxBoat, an IBM Company
 - OCI Maintainer, regclient, Docker Captain
 - StackOverflow, CNCF, OpenSSF
 ```
 
 .align-center[
 .pic-30[![BoxBoat](img/boxboat-ibm-logo-color.png)]
-.pic-30[![Docker Captain](img/docker-captain.png)]
+
+.pic-30[![OCI](img/oci-logo.svg)]
+
 .pic-30[![StackOverflow](img/stackoverflow-logo.png)]
 ]
 
@@ -129,14 +131,28 @@ name: container-images
 
 class: small
 
-# Layers
+# Content Addressable Store
 
 ```no-highlight
 $ ldigest=sha256:8921db27df2831fa6eaa85321205a2470c669b855f3ec95d5a3c2b46de0442c9
 
 $ curl -s http://localhost:5000/v2/$repo/blobs/$ldigest | sha256sum
 8921db27df2831fa6eaa85321205a2470c669b855f3ec95d5a3c2b46de0442c9  -
+```
 
+???
+
+- Content in registries is content addressable, the hash in the request is the hash of the content
+- This is the same pattern as Git
+- Very useful for deduplication, caching, and security, avoids mutable references
+
+---
+
+class: small
+
+# Layers
+
+```no-highlight
 $ curl -s http://localhost:5000/v2/$repo/blobs/$ldigest | tar -tvzf - | head
 drwxr-xr-x 0/0               0 2023-01-09 07:46 bin/
 lrwxrwxrwx 0/0               0 2023-01-09 07:46 bin/arch -> /bin/busybox
@@ -152,22 +168,15 @@ lrwxrwxrwx 0/0               0 2023-01-09 07:46 bin/chmod -> /bin/busybox
 
 ???
 
-- First, there are filesystem layers, we push those to the registry, byte for byte, typically as a tar+gzip compression
-- There are specs for building the tar, handling deleted files, etc, but lets just focus on the digest
-- The sha256sum of the compressed tar is the digest of the layer on the registry
-- This is because the registry is a Content Addressable Store, same pattern as Git
+- Blobs can store anything, in this case it's a filesystem layer, typically as a tar+gzip compression
 
 ---
 
 class: small
 
-# Other Blobs
+# Config
 
 ```no-highlight
-$ cdigest=sha256:042a816809aac8d0f7d7cacac7965782ee2ecac3f21bcf9f24b1de1a7387b769
-$ curl -s http://localhost:5000/v2/$repo/blobs/$cdigest | sha256sum
-042a816809aac8d0f7d7cacac7965782ee2ecac3f21bcf9f24b1de1a7387b769  -
-
 $ curl -s http://localhost:5000/v2/$repo/blobs/$cdigest | jq .
 {
   "config": {
@@ -190,9 +199,9 @@ $ curl -s http://localhost:5000/v2/$repo/blobs/$cdigest | jq .
 ???
 
 - Registries don't care about the content of a blob, only about the digest
-- So we can push other content to a blob
-- Images include a config JSON blob that contains all the settings for the image (command, environment, labels, history, etc)
-- We serialize that JSON into a byte array, push that as a blob, and track the digest of the content
+- So we can push other content to a blob, in this case the image config
+- The config is packaged as JSON, and  contains all the settings for the image (command, environment, labels, history, etc)
+- We serialize the JSON, push as a blob, and track the digest of the content
 
 ---
 
@@ -201,10 +210,6 @@ class: small
 # Image Manifest
 
 ```no-highlight
-$ mdigest=sha256:93d5a28ff72d288d69b5997b8ba47396d2cbb62a72b5d87cd3351094b5d578a0
-$ curl -s http://localhost:5000/v2/$repo/manifests/$mdigest | sha256sum
-93d5a28ff72d288d69b5997b8ba47396d2cbb62a72b5d87cd3351094b5d578a0  -
-
 $ curl -s http://localhost:5000/v2/$repo/manifests/$mdigest | jq .
 {
   "schemaVersion": 2,
@@ -226,14 +231,13 @@ $ curl -s http://localhost:5000/v2/$repo/manifests/$mdigest | jq .
 
 ???
 
-- Now we need a way to assemble these together, and JSON seems like a good enough solution
-- The Image Manifest is JSON that includes a descriptor to the config blob, and an array of descriptors to layers
-- What's a descriptor?
+- Now we use a different API, manifest instead of blob, to assemble a collection of references to the config and layers
+- Each of these references is called a "descriptor":
   - Media Type, Digest, Size, and optional annotations
   - Our APIs are scoped to a repository, so the descriptor must point to a blob in the same repository
-- We serialize this image manifest JSON, push that as a manifest, and track the digest
-  - Note: this is a different API from the blobs, registries validate manifests
-  - The image manifest digest is what we use to pin our images
+- This manifest has it's own digest, that's the digest you see when pinning an image
+- Importantly, registries parse manifests, and they care about the media type and schema
+  - Needed for GC, UI's, and any other higher level features
 
 ---
 
@@ -253,8 +257,9 @@ class: center,middle
 
 # Immutability
 
-- Merkle DAG + Content Addressable Store
-- Merkle Tree: each node includes hashes of child nodes
+- Merkle tree:
+  - Manifest is the root node with a hash
+  - Content of the root node is the hash of each child node
 - DAG: Directed Acyclic Graph
 - Content Addressable Store: content of each node is referenced by hash of itself
 - Result: Immutability
@@ -308,7 +313,7 @@ $ curl -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' -s
 
 - There's another manifest type, called a manifest list, or in OCI, an Index
 - This manifest contains a list of descriptors to manifests
-- I forgot to mention, those descriptors can also have a "platform" section, so runtimes can find their platform from the list and pull the appropriate manifest
+- Those descriptors can also have a "platform" section, so runtimes can find their platform from the list and pull the appropriate manifest
 - This Index is JSON, gets serialized, and has its own digest (registries are consistent like that)
 
 ---
@@ -335,20 +340,35 @@ class: small
 $ adigest=sha256:ea706edf61ef640bcdf3c9ac9045c28446e6b2d08541b9ad614c7267d0b87375
 $ curl -s http://localhost:5000/v2/$repo/blobs/$adigest
 contains electrons
+```
 
-$ amdigest=sha256:a3adcd22fc09a26551c67e3e706a42c0615d0e05ac546054932e831dae54363f
+???
+
+- Anything can be a blob, like the string "contains electrons"
+
+---
+
+class: small
+
+# Artifacts
+
+```no-highlight
+*$ adigest=sha256:ea706edf61ef640bcdf3c9ac9045c28446e6b2d08541b9ad614c7267d0b87375
+$ curl -s http://localhost:5000/v2/$repo/blobs/$adigest
+contains electrons
+
 $ curl ... http://localhost:5000/v2/$repo/manifests/$amdigest | jq .
 {
   "schemaVersion": 2,
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
   "config": {
-*   "mediaType": "application/vnd.example.ebom",
+*   "mediaType": "application/vnd.example.ebom.config",
     "size": 2,
     "digest": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
   },
   "layers": [
     {
-      "mediaType": "application/octet-stream",
+*     "mediaType": "application/vnd.example.ebom.data",
       "size": 19,
 *     "digest": "sha256:ea706edf61ef640bcdf3c9ac9045c28446e6b2d08541b9ad614c7267d0b87375"
     }
@@ -358,10 +378,9 @@ $ curl ... http://localhost:5000/v2/$repo/manifests/$amdigest | jq .
 
 ???
 
-- Anything can be a blob, like the string "contains electrons"
 - And it can be wrapped with a manifest
 - To use existing manifest types, we can pass a custom config media type
-  - That config is just `{}` to be valid json for some parsers
+  - That config is just `{}` to be valid json for some registries and clients
 
 ---
 
@@ -369,11 +388,7 @@ name: associating-artifacts
 
 # Challenge: Associating Artifacts with Images
 
-- SBOMs: generate and consume... distribution?
-  - Custom distribution per SBOM?
-  - Central database?
-- Attach SBOM to an existing image
-  - Not just SBOMs: signatures, attestations, anything
+- SBOMs, Attestations, Vulnerability Reports, Signatures
 - How do we attach to an immutable object?
 
 ???
@@ -390,11 +405,45 @@ T: 8m
 
 ---
 
+class: small
+
+# Modifying An Index?
+
+```no-highlight
+{
+  "mediaType": "application/vnd.oci.image.index.v1+json",
+  "manifests": [
+    {
+*     "digest": "sha256:93d5a28ff72d288d69b5997b8ba47396d2cbb62a72b5d87cd3351094b5d578a0",
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "size": 528
+    },
+    {
+      "digest": "sha256:01a4cdaebc9c6af607753cc538c507d0867897cdf9a1caa70bbab2eb1506c964",
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+*     "artifactType": "application/vnd.example.ebom.config",
+*     "extends": "sha256:93d5a28ff72d288d69b5997b8ba47396d2cbb62a72b5d87cd3351094b5d578a0",
+      "size": 1024,
+...
+```
+
+???
+
+- Mutating the index will mutate the digest of that index, breaking anyone that pinned to the index digest
+- There's also no way to go from the digest of the image to back up to the index to find the artifact
+- Something like this would only be useful for the originator
+
+---
+
 # How Do We Modify the Immutable
 
 - Adding metadata to an image would modify it
 - How do we attach metadata to an existing image?
-- Goals:
+- Working Group goals:
   - Efficient on registry processing, bandwidth, and round trips
   - Attaching to existing images
   - Option to detach when copying
@@ -407,7 +456,7 @@ T: 8m
 
 - The image digest refers to an immutable root of Merkle DAG
 - How do we extend that with metadata?
-- We had a list of goals:
+- We created a working group with a list of goals:
   - efficiency, attach and detach by downstream users
   - we can't predict how users will use this, there will be new types of artifacts
 - There's actually multiple ways to do that, and OCI stepped in to standardize on one method to improve interoperability
@@ -473,16 +522,13 @@ T: 14m
 
 - Yes
 - That wasn't a yes/no question, it was an a, b, or c question... yes?
-- Yes, we decided to do them all
-- We did reject a couple other options
-  - One option to bump the version on all of the APIs was too disruptive
-  - Another option to put everything in the index by the originator, and downstream users could add another layer of an Index didn't handle enough of our use cases (where end users want to sign and scan images themselves)
+- Yes, we decided to do them all, design by committee
 
 ---
 
 # How does this all come together?
 
-- Add an Artifact manifest
+- Add an Artifact manifest (currently deferred)
 - Add a subject field to the Image and Artifact manifests
 - Add a referrers API to query the subject field
 - Clients manage a tag if the referrers API isn't available
@@ -490,29 +536,41 @@ T: 14m
 ???
 
 - The result of merging everything together is:
-- We did add an Artifact manifest, but I'd recommend against rushing to use it
-- Both the Image and Artifact manifest have a subject field, but not the Index
+- We did add an Artifact manifest, but this is being deferred so don't use it
+- Both the Image and Artifact manifest have a subject field
 - And we added both a new referrers API and a fallback to using a tag
 
 ---
 
 class: center,middle
 
-.pic-80[.pic-rounded-10[![Referrers](img/referrers.png)]]
+.pic-80[.pic-rounded-10[![Referrers with Tag](img/referrers-tag.png)]]
 
 ???
 
 - Graphically, the mash up looks like this
 - I avoided drawing the subject lines all the way back to their original manifest for simplicity
-- We have our image being extended on the right
+- We have our image being extended on the left
 - And then 0 to n artifacts, either with the artifact or image manifest, on the right
 - We list those artifacts using the OCI Index, which is the manifest list in OCI
-- That index is generated either by clients that push it with a special tag, or the registry from a new API
-  - When the registry supports the API, clients stop managing the Index themselves
+- That index is initially generated by clients using a special tag
 - Every manifest with a subject pointing to a specific digest will be listed in the Index
 
 ---
 
+class: center,middle
+
+.pic-80[.pic-rounded-10[![Referrers with API](img/referrers-api.png)]]
+
+???
+
+- When the Referrers API is supported on the registry, the API replaces the client managed tag
+- The content is identical, both return an index
+- When the registry manages the response, GC is better, and race conditions are avoided
+
+---
+
+exclude: true
 class: center,middle
 
 # Why Not Add a Subject to the Index?
@@ -527,6 +585,7 @@ class: center,middle
 
 ---
 
+exclude: true
 class: center,middle
 
 # Why Not Add a Subject to the Index?
@@ -540,6 +599,7 @@ class: center,middle
 
 ---
 
+exclude: true
 class: center,middle
 
 # Garbage Collection
@@ -558,10 +618,10 @@ class: center,middle
 
 ---
 
-name: referrers-api
+name: referrers-response
 class: small
 
-# Referrers API Response
+# Referrers Response
 
 ```no-highlight
 $ curl -I -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' -s \
@@ -582,7 +642,7 @@ $ curl -H 'Accept: application/vnd.oci.image.index.v1+json' -s \
       "annotations": {
 *       "org.opencontainers.artifact.created": "2023-02-01T09:10:11Z"
       },
-*     "artifactType": "application/vnd.example.ebom"
+*     "artifactType": "application/vnd.example.ebom.config"
     }
 ...
 ```
@@ -591,8 +651,8 @@ $ curl -H 'Accept: application/vnd.oci.image.index.v1+json' -s \
 
 T: 18:30
 
-- The response to the Referrers API, and the fallback tag, is an Index (Manifest List)
-- Each descriptor is a manifest with a subject set to the digest f27...
+- The Referrers response is an Index (Manifest List)
+- Each descriptor is a manifest with a subject field set to the digest in the request (API or tag)
 - There may be lots of artifacts with the subject pointing to the same manifest
 - To identify the needed artifact from the list, we pull up the artifact type and annotations
 - So lets look at this manifest with the 732... digest
@@ -610,7 +670,7 @@ $ curl -H 'Accept: application/vnd.oci.image.manifest.v1+json' -s \
 {
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
   "config": { ...
-*   "mediaType": "application/vnd.example.ebom",
+*   "mediaType": "application/vnd.example.ebom.config",
   },
   "layers": [{ ...
     "digest": "sha256:ea706edf61ef640bcdf3c9ac9045c28446e6b2d08541b9ad614c7267d0b87375"
@@ -700,6 +760,7 @@ Query:
 
 ---
 
+exclude: true
 template: terminal
 class: center
 
@@ -708,8 +769,6 @@ class: center
 ???
 
 Curl:
-
-T: 25m
 
 - `regctl` is automating a lot for us, so here's what curl would look like
 - First we pull that tag with the digest of our app image
@@ -737,6 +796,7 @@ Zot
 
 ---
 
+exclude: true
 template: terminal
 class: center
 
@@ -768,8 +828,6 @@ class: center
 
 ???
 
-T: 30m
-
 Other Tools:
 
 - This is also implemented by ORAS, so we can see the artifact list from them
@@ -780,65 +838,73 @@ Public:
 
 ---
 
-name: next-steps
+name: status
 
-# What should registries do?
+# Current Status
 
+- Artifact manifest is being deferred
+  - Use the image manifest instead
+- Guidance on the `artifactType` values is in progress
+- Ready for testing
+
+???
+
+T: 25m
+
+- The artifact manifest is being deferred from the release while we sort out various disagreements
+  - Everything in these demos used the image manifest for packaging artifacts
+  - Helm and cosign do this today
+- Guidance for `artifactType` when you don't have a dedicated config is being worked on
+  - The challenge is we want the `artifactType` to be the media type of the artifact
+  - But the descriptor for the config media type points to blank content that doesn't match that media type
+- Testing is recommended if your registry supports it
+  - Avoid depending on this for production, especially if your `artifactType` may change
+  - Expect a few months after the next RC before a GA and registry support starts
+
+---
+
+# Registries
+
+- Registry support:
+  - Adopted: zot
+  - Blocked: Docker Hub, ECR, Harbor
 - Do not filter on unknown fields (subject and config media type)
-- Add support for the artifact manifest
 - Enable the referrers API
   - Retroactively include manifests using the tag schema
 
 ???
 
-T: 32m
-
-- For OCI 1.0 registries, as long as they aren't rejecting image manifests fallback support works
-- Adding the Artifact manifest is straightforward, gives us portability
-- The referrers API improves UX (removes race conditions, simplifies client workloads)
-  - Registries need to ensure anything pushed with the tag schema is included
-  - We don't require registries to scan every manifest ever uploaded
+- Server support is mixed
+  - Most have no explicit support, like `distribution/distribution`, and clients will use the fallback tag
+- ECR is blocking unknown fields in the manifest
+- Docker Hub is explicitly blocking the subject field
+- Harbor is throwing a 401 on the referrers API to try to block clients from pushing the fallback tag
+- The reason they are explicitly blocking is we require registries to include previously pushed data in the referrers API when the API is enabled
+  - Rather than retroactively indexing old data, they are blocking it until this is GA by OCI and they finish their development
 
 ---
 
-# What should clients do?
+# Clients
 
+- Client support: cosign, oras, and regclient
 - Use Image manifest for portability
-- Manage the fallback tag if the referrers API is unavailable
+- Clients manage the fallback tag
 - Pick appropriate artifactType values
 - Use annotations responsibly
 
 ???
 
+- Client support is slowly building
+  - I was showing regctl, oras, and cosign
+  - In the future, getting this integrated directly into tools like syft is the goal
+  - There's also work to get tooling to support the OCI Layout used to support on-disk storage of images
 - Push artifacts using the Image manifest for portability
-  - Once all registries where the artifact may be pushed have been upgraded, then consider switching
-- The fallback tag is the client responsibility, realize there are race conditions
+  - The lack of portability without any new functionality was a key issue with the new artifact manifest
+- The fallback tag is the client responsibility, realize there are race conditions and interoperability
 - The artifactType follows the IANA media type structure, and should use a registered type when available
+  - Guidance is TBD
 - Manifests with too many annotations may be refused by some registries
-
----
-
-# The Catch
-
-- Changes are in main but not released
-- Registry support at various stages
-- Client tooling at various stages
-
-???
-
-- We haven't tagged the changes in OCI yet
-  - There's still active discussion on what parts should be included
-  - The main point of contention right now is whether to include the artifact manifest
-  - We're also working on conformance tests
-  - In demo, everything I did was using the image manifest and a custom config media type
-- Some registries are waiting for GA to release their changes
-  - Hub supports artifacts
-  - PRs being developed in distribution/distribution
-  - ECR says their blocker is the OCI GA release
-  - Expect it to take time for the self hosted registries to be upgraded
-- Client tooling is mixed, but greenfields can pick the tooling
-  - Shameless plug, regclient has some pretty good support
-- Since the changes were designed to support existing OCI v1.0 registries, this can be used now
+  - Goal is to allow at least 100 referrers in a 4MB index, so exceeding 400kb of annotations is likely to break
 
 ---
 

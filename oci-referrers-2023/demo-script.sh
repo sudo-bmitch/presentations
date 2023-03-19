@@ -37,7 +37,9 @@ $ repourl1="http://localhost:5001/v2/demo-referrers-2023"
 $ repo2="localhost:5002/demo-referrers-2023"
 $ repourl2="http://localhost:5002/v2/demo-referrers-2023"
 $ mtIndex="application/vnd.oci.image.index.v1+json"
-$ mtImage="application/vnd.oci.image.manifest.v1+json"'
+$ mtImage="application/vnd.oci.image.manifest.v1+json"
+$ export COSIGN_EXPERIMENTAL=1
+$ export COSIGN_PASSWORD=password'
 
 repo1="localhost:5001/demo-referrers-2023"
 repourl1="http://localhost:5001/v2/demo-referrers-2023"
@@ -45,6 +47,8 @@ repo2="localhost:5002/demo-referrers-2023"
 repourl2="http://localhost:5002/v2/demo-referrers-2023"
 mtIndex="application/vnd.oci.image.index.v1+json"
 mtImage="application/vnd.oci.image.manifest.v1+json"
+export COSIGN_EXPERIMENTAL=1
+export COSIGN_PASSWORD=password
 
 # setup a distribution/distribution registry, OCI v1.0
 slow 'docker run -d --rm --label demo=referrers \
@@ -107,6 +111,14 @@ syft packages -q "${repo1}:app" -o spdx-json \
       -m application/spdx+json \
       --annotation "org.opencontainers.artifact.description=SPDX JSON SBOM"
 
+# sign with cosign
+if [ ! -f cosign.key ]; then
+slow 'cosign generate-key-pair'
+cosign generate-key-pair 
+fi
+slow 'cosign sign -y --key cosign.key --registry-referrers-mode oci-1-1 ${repo1}@${digest}'
+cosign sign -y --key cosign.key --registry-referrers-mode oci-1-1 ${repo1}@${digest}
+
 slow
 clear
 slow
@@ -134,8 +146,8 @@ slow
 # show curl method
 slow 'curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq .'
 curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq .
-slow 'amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[0].digest)'
-amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[0].digest)
+slow 'amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[1].digest)'
+amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[1].digest)
 slow 'curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq .'
 curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq .
 slow 'abDigest=$(curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq -r .layers[0].digest)'
@@ -159,11 +171,11 @@ regctl artifact list ${repo2}:app --format body | jq .
 slow 'regctl tag list ${repo2}'
 regctl tag list ${repo2}
 
-# show curl
-slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .'
-curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .
-slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
-curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
+# # show curl
+# slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .'
+# curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .
+# slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
+# curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
 
 slow
 clear
@@ -190,8 +202,8 @@ slow 'tagDigest=$(cat oci-demo/index.json | jq -r .manifests[1].digest)'
 tagDigest=$(cat oci-demo/index.json | jq -r .manifests[1].digest)
 slow 'cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq .'
 cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq .
-slow 'amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[0].digest)'
-amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[0].digest)
+slow 'amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[1].digest)'
+amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[1].digest)
 slow 'cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq .'
 cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq .
 slow 'abDigest=$(cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq -r .layers[0].digest)'
@@ -208,6 +220,12 @@ slow 'oras discover ${repo1}:app'
 oras discover ${repo1}:app
 slow 'oras discover ${repo2}:app'
 oras discover ${repo2}:app
+
+# show cosign verify
+slow 'cosign verify --key cosign.pub ${repo1}:app'
+cosign verify --key cosign.pub ${repo1}:app
+slow 'cosign verify --key cosign.pub ${repo2}:app'
+cosign verify --key cosign.pub ${repo2}:app
 
 # show artifacts in the wild
 slow 'regctl artifact list ghcr.io/regclient/regctl@${digest}'

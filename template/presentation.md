@@ -92,14 +92,16 @@ template: default
 ```no-highlight
 $ whoami
 - Brandon Mitchell
-- Solutions Architect @ BoxBoat
+- Solutions Architect @ BoxBoat, an IBM Company
 - OCI Maintainer, regclient, Docker Captain
 - StackOverflow, CNCF, OpenSSF
 ```
 
 .align-center[
 .pic-30[![BoxBoat](img/boxboat-ibm-logo-color.png)]
-.pic-30[![Docker Captain](img/docker-captain.png)]
+
+.pic-30[![OCI](img/oci-logo.svg)]
+
 .pic-30[![StackOverflow](img/stackoverflow-logo.png)]
 ]
 
