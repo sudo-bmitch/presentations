@@ -29,6 +29,12 @@ slow() {
   fi
 }
 
+# cleanup previous demo if canceled early
+docker ps --filter label=demo=referrers -q | xargs --no-run-if-empty docker stop
+if [ -d oci-demo ]; then
+  rm -r oci-demo
+fi
+
 clear
 slow
 
@@ -75,12 +81,12 @@ slow 'regctl registry set --tls=disabled localhost:5002'
 regctl registry set --tls=disabled localhost:5002
 
 # copy and show the image, only copy a single platform for simplicity
-slow 'digest=$(regctl image digest --platform linux/amd64 regclient/regctl:edge)'
-digest=$(regctl image digest --platform linux/amd64 regclient/regctl:edge)
+slow 'regctl image copy --platform linux/amd64 regclient/regctl:edge ${repo1}:app'
+regctl image copy --platform linux/amd64 regclient/regctl:edge ${repo1}:app
+slow 'digest=$(regctl image digest ${repo1}:app)'
+digest=$(regctl image digest ${repo1}:app)
 slow 'echo $digest'
 echo $digest
-slow 'regctl image copy regclient/regctl@${digest} ${repo1}:app'
-regctl image copy regclient/regctl@${digest} ${repo1}:app
 
 slow 'regctl manifest get ${repo1}:app --format body | jq .'
 regctl manifest get ${repo1}:app --format body | jq .
@@ -89,25 +95,25 @@ slow
 clear
 slow
 
-# generate and attach two SBOMs
+# generate and attach two SBOMs, using --config-type for zot
 slow 'syft packages -q "${repo1}:app" -o cyclonedx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --artifact-type application/vnd.cyclonedx+json \
+      --config-type application/vnd.cyclonedx+json \
       -m application/vnd.cyclonedx+json \
       --annotation "org.opencontainers.artifact.description=CycloneDX JSON SBOM"'
 syft packages -q "${repo1}:app" -o cyclonedx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --artifact-type application/vnd.cyclonedx+json \
+      --config-type application/vnd.cyclonedx+json \
       -m application/vnd.cyclonedx+json \
       --annotation "org.opencontainers.artifact.description=CycloneDX JSON SBOM"
 slow 'syft packages -q "${repo1}:app" -o spdx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --artifact-type application/spdx+json \
+      --config-type application/spdx+json \
       -m application/spdx+json \
       --annotation "org.opencontainers.artifact.description=SPDX JSON SBOM"'
 syft packages -q "${repo1}:app" -o spdx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --artifact-type application/spdx+json \
+      --config-type application/spdx+json \
       -m application/spdx+json \
       --annotation "org.opencontainers.artifact.description=SPDX JSON SBOM"
 
@@ -146,8 +152,8 @@ slow
 # show curl method
 slow 'curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq .'
 curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq .
-slow 'amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[1].digest)'
-amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r .manifests[1].digest)
+slow 'amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r '\''.manifests[] | select(.artifactType == "application/spdx+json").digest'\'')'
+amDigest=$(curl -sS -H "Accept: $mtIndex" ${repourl1}/manifests/sha256-${digest#sha256:} | jq -r '.manifests[] | select(.artifactType == "application/spdx+json").digest')
 slow 'curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq .'
 curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq .
 slow 'abDigest=$(curl -sS -H "Accept: $mtImage" ${repourl1}/manifests/${amDigest} | jq -r .layers[0].digest)'
@@ -159,7 +165,9 @@ slow
 clear
 slow
 
-# copy to zot
+# copy to zot, workaround for issue copying referrer before subject manifest
+slow 'regctl image copy ${repo1}:app ${repo2}:app'
+regctl image copy ${repo1}:app ${repo2}:app
 slow 'regctl image copy --referrers ${repo1}:app ${repo2}:app'
 regctl image copy --referrers ${repo1}:app ${repo2}:app
 
@@ -174,8 +182,8 @@ regctl tag list ${repo2}
 # # show curl
 # slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .'
 # curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .
-# slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
-# curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
+slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
+curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
 
 slow
 clear
@@ -198,12 +206,12 @@ slow 'ls oci-demo/blobs/sha256'
 ls oci-demo/blobs/sha256
 
 # get referrers using jq to get digest of tag
-slow 'tagDigest=$(cat oci-demo/index.json | jq -r .manifests[1].digest)'
-tagDigest=$(cat oci-demo/index.json | jq -r .manifests[1].digest)
+slow 'tagDigest=$(cat oci-demo/index.json | jq -r '\''.manifests[] | select(.annotations."org.opencontainers.image.ref.name" != "app").digest'\'')'
+tagDigest=$(cat oci-demo/index.json | jq -r '.manifests[] | select(.annotations."org.opencontainers.image.ref.name" != "app").digest')
 slow 'cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq .'
 cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq .
-slow 'amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[1].digest)'
-amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r .manifests[1].digest)
+slow 'amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r '\''.manifests[] | select(.artifactType == "application/spdx+json").digest'\'')'
+amDigest=$(cat oci-demo/blobs/sha256/${tagDigest#sha256:} | jq -r '.manifests[] | select(.artifactType == "application/spdx+json").digest')
 slow 'cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq .'
 cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq .
 slow 'abDigest=$(cat oci-demo/blobs/sha256/${amDigest#sha256:} | jq -r .layers[0].digest)'
@@ -228,10 +236,10 @@ slow 'cosign verify --key cosign.pub ${repo2}:app'
 cosign verify --key cosign.pub ${repo2}:app
 
 # show artifacts in the wild
-slow 'regctl artifact list ghcr.io/regclient/regctl@${digest}'
-regctl artifact list ghcr.io/regclient/regctl@${digest}
-slow 'oras discover ghcr.io/regclient/regctl:edge --platform linux/amd64'
-oras discover ghcr.io/regclient/regctl:edge --platform linux/amd64
+slow 'regctl artifact list --platform linux/amd64 ghcr.io/regclient/regctl:latest'
+regctl artifact list --platform linux/amd64 ghcr.io/regclient/regctl:latest
+slow 'oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest'
+oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest
 
 slow
 clear
