@@ -112,20 +112,20 @@ name: container-images
 
 # Container Images
 
-- Filesystem layers
 - Created with `docker build`
-- Sometimes referenced with `sha256:...`
+- Filesystem layers
 - Inspecting images to see history and config
 - Multi-platform images
+- Sometimes referenced with `sha256:...`
 
 ???
 
-- Most people here know what a container image is, often described as a set of filesystem layers
 - You've likely run `docker build` to create them, or some other builder
-- You have probably seen `sha256:...` digests to pin an image
+- Most people here know what a container image is, often described as a set of filesystem layers
 - You've likely inspected an image and seen the command that it runs, maybe the history of how it was built, but that's not a layer
-- And lately you've almost certainly noticed more multi-platform images, how does that work
-- Lets open this up and see how all of it works
+- Perhaps you have built multi-platform images to support other architectures like arm64 for M1 users
+- You have probably seen `sha256:...` digests to pin an image
+- Lets dissect this
 
 ---
 
@@ -143,7 +143,7 @@ $ curl -s http://localhost:5000/v2/$repo/blobs/$ldigest | sha256sum
 ???
 
 - Content in registries is content addressable, the hash in the request is the hash of the content
-- This is the same pattern as Git and ipfs
+- This is the same pattern as Git, Nix, and ipfs
 - Very useful for deduplication, caching, and security, avoids mutable references
 
 ---
@@ -168,7 +168,9 @@ lrwxrwxrwx 0/0               0 2023-01-09 07:46 bin/chmod -> /bin/busybox
 
 ???
 
-- Blobs can store anything, in this case it's a filesystem layer, typically as a tar+gzip compression
+- There are two major interfaces in an OCI registry, one is for blobs
+- Blobs can contain any opaque content
+- In this case it's a filesystem layer, typically as a tar+gzip compression
 
 ---
 
@@ -198,10 +200,9 @@ $ curl -s http://localhost:5000/v2/$repo/blobs/$cdigest | jq .
 
 ???
 
-- Registries don't care about the content of a blob, only about the digest
-- So we can push other content to a blob, in this case the image config
-- The config is packaged as JSON, and  contains all the settings for the image (command, environment, labels, history, etc)
-- We serialize the JSON, push as a blob, and track the digest of the content
+- Images are not just layers, they have a configuration to identify the command to run, environment variables, labels, etc.
+- To package that in a blob, OCI serializes it JSON
+- As a user, we just need to know the hash/digest of that content
 
 ---
 
@@ -231,13 +232,12 @@ $ curl -s http://localhost:5000/v2/$repo/manifests/$mdigest | jq .
 
 ???
 
-- Now we use a different API, manifest instead of blob, to assemble a collection of references to the config and layers
-- Each of these references is called a "descriptor":
+- The second major API is for manifests, and these registries will parse
+- Like with the config, it is serialized JSON, and it has a content addressable hash
+- This manifest assembles the config, along with a list of layers, to define our image
+- Each of the references to other content is implemented using a descriptor
   - Media Type, Digest, Size, and optional annotations
   - Our APIs are scoped to a repository, so the descriptor must point to a blob in the same repository
-- This manifest has it's own digest, that's the digest you see when pinning an image
-- Importantly, registries parse manifests, and they care about the media type and schema
-  - Needed for GC, UI's, and any other higher level features
 
 ---
 
@@ -249,33 +249,8 @@ class: center,middle
 
 ???
 
-- If you want to pull by tag, you first push the manifest by tag
-- That manifest still has a digest
-- The tag is effectively a symbolic link to a manifest digest (remember, a registry as a CAS)
-
----
-
-# Immutability
-
-- Content Addressable Store: content of each node is referenced by hash of itself
-- DAG: Directed Acyclic Graph
-- Merkle tree:
-  - Manifest is the root node with a hash
-  - Content of the root node is the hash of each child node
-
-???
-
-T: 5m
-
-- The resulting structure follows a pattern:
-  - CAS: reference the content by the hash of itself
-  - DAG: there are no loops, everything must terminate
-  - Merkle Tree: each node contains the hashes of child nodes
-- Putting those together gives us immutability absent of a hash collision
-- Given an image digest, you know it has not been modified
-  - Building a new image may only change one layer or some config metadata, resulting in a new digest
-- Common pattern: used by Git, ipfs, blockchains
-  - Useful for security, but bad for what we'll talk about later
+- What if we don't know the digest?
+- For that we have tags, which are essentially pointers or symbolic links to a specific manifest
 
 ---
 
@@ -380,7 +355,29 @@ $ curl ... http://localhost:5000/v2/$repo/manifests/$amdigest | jq .
 - And it can be wrapped with a manifest
 - To use existing manifest types, we can pass a custom config media type
   - That config is just `{}` to be valid json for some registries and clients
-- This is done today with Helm charts, GitOps state with Flux
+- This is done today with Helm charts, cosign signatures, GitOps state with Flux
+
+---
+
+# Immutability
+
+- Content Addressable Store: content of each node is referenced by hash of itself
+- DAG: Directed Acyclic Graph
+- Merkle tree:
+  - Manifest is the root node with a hash
+  - Content of the root node is the hash of each child node
+
+???
+
+- The resulting structure follows a pattern:
+  - CAS: reference the content by the hash of itself
+  - DAG: there are no loops, everything must terminate
+  - Merkle Tree: each node contains the hashes of child nodes
+- Putting those together gives us immutability absent of a hash collision
+- Given an image digest, you know it has not been modified
+  - Building a new image may only change one layer or some config metadata, resulting in a new digest
+- Common pattern: used by Git, ipfs, blockchains
+  - Useful for security, but it creates a challenge
 
 ---
 
@@ -388,26 +385,46 @@ name: associating-artifacts
 
 # Challenge: Associating Artifacts with Images
 
-- SBOMs, Attestations, Vulnerability Reports, Signatures
-- How do we attach to an immutable object?
+- SBOMs, Attestations, Signatures
+- How do we associate new artifacts with an existing immutable image?
 
 ???
 
 T: 8m
 
-- SBOMs have been working on generation, and soon consumption, but how are we distributing them?
-  - Like docker, they have "Build and Run", but we're missing the second step, "Ship"
-- If distribution is custom, there will be lots of missed upstream data
-- If distribution is a central database, we have scaling/trust issues
-- What if we distribute using the same system we use to distribute our images?
-- How do you attach the SBOM to the image... the immutable image?
-- We want to link an SBOM, a signature, and other metadata to an image that already exists
+- Many of the artifacts people want to create are associated with an image
+- We need the ability to take a given image, and lookup the artifacts that are associated with it
+- Those are artifacts like
+  - SBOMs: the software bill of materials, or ingredients list of an image
+  - Signatures: a cryptographic stamp of approval
+  - Attestations: provenance of how the image was created
+  - Other data: Dockerfile + context for rebuilding, license file for legal
+- How do we associate new artifacts with an immutable image?
+
+---
+
+# OCI Working Group Goals
+
+- Efficient on registry processing, bandwidth, and round trips
+- Attaching to existing images
+- Option to detach when copying
+- Referencing images by digest or tag
+- Multiple artifacts of the same type are possible
+- Not limited to known artifact types
+
+???
+
+- OCI looked at this issue and created a working group to define a solution
+- We created a working group with a list of goals:
+  - efficiency, attach and detach by downstream users
+  - we can't predict how users will use this, there will be new types of artifacts
+- We looked at multiple solutions
 
 ---
 
 class: small
 
-# Modifying An Index?
+# Option: Modifying the Index
 
 ```no-highlight
 {
@@ -433,34 +450,15 @@ class: small
 
 ???
 
-- Mutating the index will mutate the digest of that index, breaking anyone that pinned to the index digest
-- You would need another method to attach data to the index itself
-- There's also no way to go from the digest of the image to back up to the index to find the artifact
-- Something like this would only be useful for the originator
-
----
-
-# How Do We Modify the Immutable
-
-- Adding metadata to an image would modify it
-- How do we attach metadata to an existing image?
-- Working Group goals:
-  - Efficient on registry processing, bandwidth, and round trips
-  - Attaching to existing images
-  - Option to detach when copying
-  - Referencing images by digest or tag
-  - Multiple artifacts of the same type are possible
-  - Not limited to known artifact types
-- Multiple solutions
-
-???
-
-- The image digest refers to an immutable root of Merkle DAG
-- How do we extend that with metadata?
-- We created a working group with a list of goals:
-  - efficiency, attach and detach by downstream users
-  - we can't predict how users will use this, there will be new types of artifacts
-- There's actually multiple ways to do that, and OCI stepped in to standardize on one method to improve interoperability
+- Some have suggested that we mutate the index
+- This preserves the existing DAG model, but it modifies the index digest for each change
+- Changing the digest breaks any users that depend on a specific digest (auditors)
+- Unable to go from the digest of the image back to the index (may image can be listed in 0-n indexes)
+- Different artifacts for the same image depending on which index is pulled
+- Adding artifacts to the index would require another layer of abstraction (index nested in an index, which is no longer recognized by runtimes)
+- New entries in the index could break some runtimes that are only expecting runnable images in the index
+- Single platform manifests would now have an index, breaking runtimes that worked with the single platform manifest
+- Something like this would only be useful for the originator at the expense of downstream users
 
 ---
 
@@ -472,7 +470,7 @@ class: center,middle
 
 ???
 
-- First option was to create a new manifest for artifacts
+- We considered what ORAS did, creating a new manifest just for artifacts
 - Registries validate manifests, so this is not backwards compatible
 - Include a subject field in the artifact that references the original image
 - Add an API to list all manifest that have a subject with a specific digest
@@ -489,7 +487,7 @@ class: center,middle
 
 ???
 
-- Second option looked at extending existing manifests
+- We also looked at extending existing manifests
 - OCI allows forward compatibility by allowing unknown fields
 - Pro: manifests are portable across existing registries
 - Con:
@@ -506,9 +504,9 @@ class: center,middle
 
 ???
 
-- This takes inspiration from sigstore, and defines a tag syntax for looking up manifests that refer to another
+- We considered what sigstore/cosign did, defining a tag syntax for looking up manifests that refer to another
 - The tag is formatted with the digest of the extended image
-- Pulling tag returns an index of manifests that can be managed by clients without any change to the registry
+- In our case, the tag returns an index of manifests that can be managed by clients without any change to the registry
 - Each manifest entry in the Index contains annotations for client side filtering
 
 ---
@@ -521,24 +519,19 @@ template: inverse
 
 T: 14m
 
-- Yes
-- That wasn't a yes/no question, it was an a, b, or c question... yes?
-- Yes, we decided to do them all, design by committee
-- But then we changed a few things
+- We ultimately settled on a combination of the last two
 
 ---
 
 # How does this all come together?
 
-- ~~Add an Artifact manifest~~ Retracted the Artifact manifest
-- Add a `subject` and `artifactType` field to the Image manifest
+- Add a `subject` and `artifactType` field to the Image and Index manifests
 - Add a referrers API to query the subject field
 - Clients manage a tag if the referrers API isn't available
 
 ???
 
-- The result of merging everything together is:
-- We did add an Artifact manifest, but this was pulled for now
+- The result of merging the last two options together is:
 - Added subject and artifactType to Image manifest
 - And we added both a new referrers API and a fallback to using a tag
 
@@ -569,25 +562,6 @@ class: center,middle
 - When the Referrers API is supported on the registry, the API replaces the client managed tag
 - The content is identical, both return an index
 - When the registry manages the response, GC is better, and race conditions are avoided
-
----
-
-exclude: true
-class: center,middle
-
-# Garbage Collection
-
-.pic-80[.pic-rounded-10[![Referrer Simple](img/referrer-simple.png)]]
-
-???
-
-- Supporting GC was a large consideration
-- Typically tagged manifests are preserved
-  - Registries recursively parse manifests and blobs to mark everything to preserve, and sweep anything unmarked
-- Without the API, these artifacts would be referenced from a client managed tag
-- With the referrers API, we need to treat the subject reference in reverse
-- Because of this and similar recursive processes, we don't want loops in the DAG
-- This means artifacts can be untagged, and only GC'd when the subject image is GC'd
 
 ---
 
@@ -622,13 +596,13 @@ $ curl -H 'Accept: application/vnd.oci.image.index.v1+json' -s \
 
 ???
 
-T: 18:30
+T: 18:00
 
 - The Referrers response is an Index (Manifest List)
 - Each descriptor is a manifest with a subject field set to the digest in the request (API or tag)
 - There may be lots of artifacts with the subject pointing to the same manifest
 - To identify the needed artifact from the list, we pull up the artifact type and annotations
-- So lets look at this manifest with the 732... digest
+- So lets look at this artifact manifest
 
 ---
 
@@ -664,12 +638,12 @@ $ curl ... http://localhost:5000/v2/$repo/manifests/$mdigest | jq .
 ???
 
 - This artifact is pushed using the image manifest
-- The artifactType is pulled up from the config media type
-  - If the artifactType field is defined in the image manifest, that is used instead of the config mediaType
+- The `artifactType` is pulled up
+  - Using the `artifactType` if defined, else the `config.mediaType` value
 - Any annotations here are pulled up
 - And the subject matches
-- So that's it, we have a way to extend the f27 manifest with extra metadata, without changing it
-- We can add or remove these artifacts, and the referrers API needs to update
+- So that's it, we added an association to the f27... manifest, without changing it
+- We can add or remove these artifacts, and the referrers API or our fallback tag needs to update
 
 ---
 
@@ -684,6 +658,35 @@ T: 20m
 
 ---
 
+class: small
+
+# Demo Setup
+
+```no-highlight
+repo1="localhost:5001/demo-referrers-2023"
+repourl1="http://localhost:5001/v2/demo-referrers-2023"
+repo2="localhost:5002/demo-referrers-2023"
+repourl2="http://localhost:5002/v2/demo-referrers-2023"
+
+mtIndex="application/vnd.oci.image.index.v1+json"
+mtImage="application/vnd.oci.image.manifest.v1+json"
+export COSIGN_EXPERIMENTAL=1
+export COSIGN_PASSWORD=password
+
+regctl image copy --platform linux/amd64 regclient/regctl:edge ${repo1}:app
+```
+
+???
+
+- For this demo I'm running two registries:
+  - 1 is the CNCF distribution project, without the API
+  - 2 is Zot, which supports the new API
+- I'll also be using cosign with experimental support for referrers
+- And for the app, I'm picking a single platform OCI image manifest to simplify the demos
+
+---
+
+exclude: true
 template: terminal
 class: center
 
@@ -730,9 +733,8 @@ Query:
 - Now that the SBOM is attached, we want to query it
 - The listing shows all artifacts attached to our app images
 - And since this is on an OCI v1.0 registry, that's being done using this tag
-- We can even get that tag and see it's the same Index with a list of artifacts
-- And it's the name of the tag that links it to our app image
-- If you just want the SBOM, the `regctl artifact get` command lets you pull and artifact that has a subject of another image, and even filter based on the artifact type or annotation
+- If you just want the SBOM, the `regctl artifact get` command lets you pull and artifact
+- We need to know our image and the artifact type, the fallback tag is used to lookup the manifest we want, and pull the artifact from the layer
 
 ---
 
@@ -767,8 +769,6 @@ Zot
 - First, I'll copy our app image, including the referrers, from distribution to Zot
 - When I list the artifacts, the SBOMs were included in the copy
 - However the tag listing doesn't include the app digest tag
-- If I try to pull that special tag, it doesn't exist
-- But I can query the referrers API, with the digest of our app image, and get a registry generated list of all manifests that have a subject field pointing to our app digest
 
 ---
 
@@ -779,8 +779,6 @@ class: center
 <asciinema-player src="demo-6-oci-layout.cast" cols=100 rows=26 preload=true font-size=16></asciinema-player>
 
 ???
-
-T: 28m
 
 OCI Layout
 
@@ -806,11 +804,11 @@ class: center
 
 Other Tools:
 
-- This is also implemented by ORAS, so we can see the artifact list from them
+- This is implemented by ORAS, cosign, and trivy
 
 Public:
 
-- And this has escaped the lab, I'm just starting to include these on my image in GHCR
+- And this has escaped the lab, I include these on my images in GHCR
 
 ---
 
@@ -818,50 +816,42 @@ name: status
 
 # Current Status
 
-- Release candidates:
-  - image-spec 1.1.0-rc.3
-  - distribution-spec 1.1.0-rc.2
-- Image manifest now has an `artifactType`
 - Ready for testing
+- Close to GA
 
 ???
 
 T: 25m
 
-- There is a new release candidate
-- `artifactType` was added when artifacts don't have a dedicated config
-  - The config mediaType is set to a "scratch" value which is just `{}` in the blob and a known media type
-  - For all artifacts with their own config media type, they can continue using that
+- There have been quite a few changes since this first came out of the working group
+- We removed a separate artifact manifest type because it wasn't needed and hurts portability
+- We added an `artifactType` field and defined an empty JSON media type (`{}`) for artifacts that do not have a dedicated config
+- There is discussion on whether clients can push artifacts before the image they reference (so image could never be pulled before the signature is available)
 - Testing is encouraged, production usage is at your own risk
 
 ---
 
 # Registries
 
-- Registry support:
-  - Adopted: zot, Harbor
-  - Blocked: Docker Hub, ECR, GitLab
-- Do not filter on unknown fields (subject and config media type)
-- Enable the referrers API
-  - Retroactively include manifests using the tag schema
+- Adopted: zot, Harbor
+- Blocked: Docker Hub, GitLab
 
 ???
 
 - Server support is mixed
-  - Most have no explicit support, like `distribution/distribution`, and clients will use the fallback tag
 - Zot has been an early adopter
 - Harbor recently released support for a previous RC (without the `artifactType` addition)
+- Most have no explicit support, like GHCR and `distribution/distribution`, and clients will use the fallback tag
 - Docker Hub is explicitly blocking the subject field
-- ECR is blocking unknown fields in the manifest
+  - Concern about including data pushed with fallback tag, may support it when OCI GA's
 - GitLab blocks unknown artifact types, they approve specific config mediaType values
-- The reason some are explicitly blocking is we require registries to include previously pushed data in the referrers API when the API is enabled
-  - Rather than retroactively indexing old data, they are blocking it until this is GA by OCI and they finish their development
+- ECR is blocking unknown fields in the manifest, but they added support for artifactType and subject
 
 ---
 
 # Clients
 
-- Client support: cosign, oras, and regclient
+- Client support: cosign, notation, oras, regclient, and trivy
 - Clients manage the fallback tag
 - Pick appropriate artifactType values
 - Use annotations responsibly
@@ -870,12 +860,10 @@ T: 25m
 
 - Client support is slowly building
   - I was showing regctl, oras, and cosign
-  - In the future, getting this integrated directly into tools like syft is the goal
-  - There's also work to get tooling to support the OCI Layout used to support on-disk storage of images
-- Push artifacts using the Image manifest for portability
-  - The lack of portability without any new functionality was a key issue with the new artifact manifest
+  - Trivy has a plugin, though it needs some work (config mediaType, pull up annotations into fallback tag), and I couldn't get their "referrer get" command to work
+  - Hoping that SBOM generators, vulnerability scanners, and other tools use this directly
 - The fallback tag is the client responsibility, realize there are race conditions and interoperability
-- The artifactType follows the IANA media type structure, and should use a registered type when available
+- The artifactType follows the IANA media type structure, and should use a registered type when available, or get the upstream project to define one
 - Manifests with too many annotations may be refused by some registries
   - Goal is to allow at least 100 referrers in a 4MB index, so exceeding 400kb of annotations is likely to break
 
