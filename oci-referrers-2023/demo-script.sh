@@ -38,19 +38,19 @@ fi
 clear
 slow
 
-slow 'repo1="localhost:5001/demo-referrers-2023"
-$ repourl1="http://localhost:5001/v2/demo-referrers-2023"
-$ repo2="localhost:5002/demo-referrers-2023"
-$ repourl2="http://localhost:5002/v2/demo-referrers-2023"
-$ mtIndex="application/vnd.oci.image.index.v1+json"
-$ mtImage="application/vnd.oci.image.manifest.v1+json"
-$ export COSIGN_EXPERIMENTAL=1
-$ export COSIGN_PASSWORD=password'
+# slow 'repo1="localhost:5001/demo-referrers-2023"
+# $ repourl1="http://localhost:5001/v2/demo-referrers-2023"
+# $ repo2="localhost:5002/demo-referrers-2023"
+# $ repourl2="http://localhost:5002/v2/demo-referrers-2023"
+# $ mtIndex="application/vnd.oci.image.index.v1+json"
+# $ mtImage="application/vnd.oci.image.manifest.v1+json"
+# $ export COSIGN_EXPERIMENTAL=1
+# $ export COSIGN_PASSWORD=password'
 
 repo1="localhost:5001/demo-referrers-2023"
 repourl1="http://localhost:5001/v2/demo-referrers-2023"
-repo2="localhost:5002/demo-referrers-2023"
-repourl2="http://localhost:5002/v2/demo-referrers-2023"
+repo2="localhost:5003/demo-referrers-2023"
+repourl2="http://localhost:5003/v2/demo-referrers-2023"
 mtIndex="application/vnd.oci.image.index.v1+json"
 mtImage="application/vnd.oci.image.manifest.v1+json"
 export COSIGN_EXPERIMENTAL=1
@@ -67,17 +67,18 @@ docker run -d --rm --label demo=referrers \
   -e "REGISTRY_VALIDATION_DISABLED=true" \
   -p "127.0.0.1:5001:5000" \
   registry:2
-slow 'regctl registry set --tls=disabled localhost:5001'
+# slow 'regctl registry set --tls=disabled localhost:5001'
 regctl registry set --tls=disabled localhost:5001
 
 # setup a zot registry, OCI v1.1
+# NOTE: a development build of the Zot image may be required for this demo
 slow 'docker run -d --rm --label demo=referrers \
   -p "127.0.0.1:5002:5000" \
   ghcr.io/project-zot/zot-linux-amd64:latest'
 docker run -d --rm --label demo=referrers \
   -p "127.0.0.1:5002:5000" \
   ghcr.io/project-zot/zot-linux-amd64:latest
-slow 'regctl registry set --tls=disabled localhost:5002'
+# slow 'regctl registry set --tls=disabled localhost:5002'
 regctl registry set --tls=disabled localhost:5002
 
 # copy and show the image, only copy a single platform for simplicity
@@ -95,25 +96,25 @@ slow
 clear
 slow
 
-# generate and attach two SBOMs, using --config-type for zot
+# generate and attach two SBOMs, using --config-type for zot?
 slow 'syft packages -q "${repo1}:app" -o cyclonedx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --config-type application/vnd.cyclonedx+json \
+      --artifact-type application/vnd.cyclonedx+json \
       -m application/vnd.cyclonedx+json \
       --annotation "org.opencontainers.artifact.description=CycloneDX JSON SBOM"'
 syft packages -q "${repo1}:app" -o cyclonedx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --config-type application/vnd.cyclonedx+json \
+      --artifact-type application/vnd.cyclonedx+json \
       -m application/vnd.cyclonedx+json \
       --annotation "org.opencontainers.artifact.description=CycloneDX JSON SBOM"
 slow 'syft packages -q "${repo1}:app" -o spdx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --config-type application/spdx+json \
+      --artifact-type application/spdx+json \
       -m application/spdx+json \
       --annotation "org.opencontainers.artifact.description=SPDX JSON SBOM"'
 syft packages -q "${repo1}:app" -o spdx-json \
   | regctl artifact put --subject "${repo1}:app" \
-      --config-type application/spdx+json \
+      --artifact-type application/spdx+json \
       -m application/spdx+json \
       --annotation "org.opencontainers.artifact.description=SPDX JSON SBOM"
 
@@ -136,10 +137,10 @@ regctl artifact list ${repo1}:app --format body | jq .
 # show tag list and the digest
 slow 'regctl tag list ${repo1}'
 regctl tag list ${repo1}
-slow 'echo ${digest#sha256:}'
-echo ${digest#sha256:}
-slow 'regctl manifest get ${repo1}:sha256-${digest#sha256:} --format body | jq .'
-regctl manifest get ${repo1}:sha256-${digest#sha256:} --format body | jq .
+# slow 'echo ${digest#sha256:}'
+# echo ${digest#sha256:}
+# slow 'regctl manifest get ${repo1}:sha256-${digest#sha256:} --format body | jq .'
+# regctl manifest get ${repo1}:sha256-${digest#sha256:} --format body | jq .
 
 # pull one sbom
 slow 'regctl artifact get --subject ${repo1}:app --filter-artifact-type application/vnd.cyclonedx+json | more'
@@ -165,9 +166,7 @@ slow
 clear
 slow
 
-# copy to zot, workaround for issue copying referrer before subject manifest
-slow 'regctl image copy ${repo1}:app ${repo2}:app'
-regctl image copy ${repo1}:app ${repo2}:app
+# copy to zot including referrers
 slow 'regctl image copy --referrers ${repo1}:app ${repo2}:app'
 regctl image copy --referrers ${repo1}:app ${repo2}:app
 
@@ -182,8 +181,12 @@ regctl tag list ${repo2}
 # # show curl
 # slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .'
 # curl -sS -H "Accept: $mtIndex" ${repourl2}/manifests/sha256-${digest#sha256:} | jq .
-slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
-curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
+# slow 'curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .'
+# curl -sS -H "Accept: $mtIndex" ${repourl2}/referrers/${digest} | jq .
+
+# pull the other sbom
+slow 'regctl artifact get --subject ${repo2}:app --filter-artifact-type application/spdx+json | more'
+regctl artifact get --subject ${repo2}:app --filter-artifact-type application/spdx+json | more
 
 slow
 clear
@@ -238,8 +241,8 @@ cosign verify --key cosign.pub ${repo2}:app
 # show artifacts in the wild
 slow 'regctl artifact list --platform linux/amd64 ghcr.io/regclient/regctl:latest'
 regctl artifact list --platform linux/amd64 ghcr.io/regclient/regctl:latest
-slow 'oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest'
-oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest
+# slow 'oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest'
+# oras discover --platform linux/amd64 ghcr.io/regclient/regctl:latest
 
 slow
 clear
