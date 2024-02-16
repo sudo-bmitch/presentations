@@ -1,15 +1,31 @@
 # Presentations from Brandon Mitchell
 
-These slides are made with RemarkJS and should be viewable in any browser. From
-the desktop, you can press "P" to see presenter notes. PDF's have also been
-included when possible. For the slides with a live terminal, use "W" and "E" to
-pause/play the recording.
+These slides are made with RemarkJS or Reveal.js and should be viewable in any browser.
 
-Note: if you have cloned the repo locally, and are viewing the presentations by double clicking the html files, some embedded content may not display. There are several possible solutions:
+For slides in Reveal.js:
+
+- You can press "S" to see the speaker notes view.
+
+For slides in RemarkJS:
+
+- You can press "P" to see presenter notes.
+- For the slides with a live terminal, use "W" and "E" to pause/play the recording.
+
+PDF's have also been included when possible. 
+
+Note: if you have cloned the repo locally, and are viewing the presentations by double clicking the html files, some embedded content may not display.
+There are several possible solutions:
 
 1. View the content online, everything should be available from the links to GitHub pages.
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
+
+## OCI and regclient - Luxembourg 2024
+
+This is an overview of the OCI image and distribution specs, along with a description of the regclient tooling.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/oci-regclient-luxembourg-2024/index.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-regclient-luxembourg-2024/presentation.pdf)]
 
 ## Modifying the Immutable: Attaching Artifacts to OCI Images
 
