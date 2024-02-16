@@ -4,3 +4,6 @@ DCSF18_Breakout_Presentation_Template-UPDATED.pptx
 *.swp
 *private*
 recordings
+_shared/reveal.js/*
+!_shared/reveal.js/dist
+!_shared/reveal.js/plugin
