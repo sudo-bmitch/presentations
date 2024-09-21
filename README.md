@@ -20,6 +20,13 @@ There are several possible solutions:
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
 
+## OCI 1.1 Lightning Talk
+
+Presented at KCD DC 2024, this brief talk covers the changes in the OCI distribution-spec and image-spec v1.1.0 releases.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/oci-1.1-lightning/index.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oci-1.1-lightning/presentation.pdf)]
+
 ## OCI and regclient - Luxembourg 2024
 
 This is an overview of the OCI image and distribution specs, along with a description of the regclient tooling.
