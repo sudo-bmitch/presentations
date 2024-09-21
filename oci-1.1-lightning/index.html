@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>OCI 1.1 Lightning Talk</title>
+
+		<link rel="stylesheet" href="../_shared/reveal.js/dist/reset.css">
+		<link rel="stylesheet" href="../_shared/reveal.js/dist/reveal.css">
+		<link rel="stylesheet" href="../_shared/reveal.js/dist/theme/white.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="../_shared/reveal.js/plugin/highlight/monokai.css">
+	</head>
+	<body>
+    <style>
+      /* disable line numbers on slides */
+      .hljs-ln-numbers {
+        display: none;
+      }
+      /* multi-column slides */
+      .container {
+        display: flex;
+      }
+      .col {
+        flex: 1;
+      }
+      /* soften the corners on select images */
+      img.pic-rounded-10 {
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        -ms-border-radius: 10px;
+        -o-border-radius: 10px;
+        border-radius: 10px;
+      }
+      /* image in a circle, 70% width */
+      img.pic-circle-title {
+        max-width: 60%;
+        vertical-align: middle;
+        text-align: center;
+        -webkit-border-radius: 50%;
+        -moz-border-radius: 50%;
+        -ms-border-radius: 50%;
+        -o-border-radius: 50%;
+        border-radius: 50%;
+      }
+      /* reduce default h1 size */
+      .reveal h1 {
+        font-size: 2.0em
+      }
+    </style>
+
+    <div class="reveal">
+			<div class="slides">
+        <section
+          data-markdown="presentation.md"
+          data-background-image="../_shared/img/containers_bg.png"
+          data-separator="^\n---\n"
+          data-separator-vertical="^\n------\n"
+          data-separator-notes="^Note:"
+          data-charset="iso-8859-15"
+        >
+        </section>
+			</div>
+		</div>
+
+		<script src="../_shared/reveal.js/dist/reveal.js"></script>
+		<script src="../_shared/reveal.js/plugin/notes/notes.js"></script>
+		<script src="../_shared/reveal.js/plugin/markdown/markdown.js"></script>
+		<script src="../_shared/reveal.js/plugin/highlight/highlight.js"></script>
+    <script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+        progress: true,
+        slideNumber: "c",
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
