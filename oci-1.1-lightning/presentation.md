@@ -48,6 +48,7 @@ Note:
 
 Note:
 
+- T 0:45
 - Open Container Initiative
 - Under LF: sibling to CNCF and OpenSSF, among others
 - We are focused on specifications, with some code
@@ -78,6 +79,7 @@ Note:
 
 Note:
 
+- T 1:15
 - Previously artifacts were documented in a separate repo describing how OCI could be used, this is formal support.
 - Adding a new manifest would be a breaking change, so we leveraged the image manifest
 - The `artifactType` field is a media type, and is used when an artifact doesn't have a separate configuration JSON blob
@@ -93,6 +95,7 @@ Note:
 
 Note:
 
+- T 1:30
 - The hot trend a few years ago was "secure supply chain", and a cornerstone of that was signing and attestations (e.g. SLSA)
 - OCI solved the distribution of that content by letting you push an artifact that references another manifest
 - That reference is the `subject` field in your artifact, the signature has a subject field set to the digest of the image it signed
@@ -121,12 +124,22 @@ Note:
 - base64 encoding of content inlined in a manifest
 - Used when overhead of another registry round trip is greater than base64 encoding overhead
 
+Note:
+
+- T 2:30
+- Allows you to inline small blobs into the image manifest
+- Useful when the overhead of API calls is greater than the overhead of base64 encoding
+
 ------
 
 ## Manifest Maximum Size
 
 - Registries and tooling should support 4MiB manifests
 - Don't pack everything in the data field or abuse annotations
+
+Note:
+
+- Some engines and registries already had limits, we just defined an expectation of what everyone should support.
 
 ------
 
@@ -135,12 +148,21 @@ Note:
 - These were included for Windows images
 - No longer needed by Microsoft so their use is discouraged
 
+Note:
+
+- T 3:00
+- Microsoft needed these for legal reasons and no longer has that need, so we ask that no one use them in images going forward.
+
 ------
 
 ## zstd Compression
 
 - Alternative to gzip compression for image layers
 - May use less CPU and compress to a smaller size
+
+Note:
+
+- z-standard is an alternative to gzip that may result in smaller images and less CPU overhead, but support isn't universal.
 
 ------
 
@@ -150,6 +172,10 @@ Note:
 - Clients pick the first matching entry
 - Gives ability to introduce new features while supporting existing runtimes
 
+Note:
+
+- For forward compatibility, when picking from a manifest list, used by multi-platform images, pick the first entry when the tool cannot tell the difference.
+
 ---
 
 ## Registry API Extensions
@@ -158,6 +184,11 @@ Note:
 - Will not conflict with future OCI APIs
 - Register to avoid conflicting with other registries
 
+Note:
+
+- T 3:30
+- Allows registries to add their APIs under the same namespace without conflicting with OCI or others.
+
 ------
 
 ## Resumable Chunked Upload
@@ -165,12 +196,21 @@ Note:
 - Allows an interrupted blob push to be resumed
 - Needed to push large blobs on flaky networks
 
+Note:
+
+- Lets you recover from a network failure.
+
 ------
 
 ## Warning Header
 
 - Registries can return a header on requests that client tooling should show
 - Deprecation notices, security alerts, any non-fatal notification
+
+Note:
+
+- T 4:00
+- This would have been useful for advertising the deprecation of the kubernetes registry.
 
 ------
 
@@ -181,9 +221,7 @@ Note:
 
 Note:
 
-- The mount gives one repository access to a layer in another
-- Used for base images
-- Anonymous is useful when the base image was on another registry
+- Anonymous mounts are useful when multiple images are using base image from another registry.
 
 ---
 
@@ -209,6 +247,10 @@ Note:
 
 </div></div>
 
+Note:
+
+- T 4:45
+
 ---
 
 # Thank You
@@ -230,6 +272,11 @@ Note:
 </div>
 
 github.com/sudo-bmitch/presentations
+
+Note:
+
+- Join OCI on their GitHub.
+- These slides are also available on my GitHub repo.
 
 <!-- markdownlint-disable-file MD025 -->
 <!-- markdownlint-disable-file MD034 -->
