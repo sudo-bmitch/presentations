@@ -11,7 +11,7 @@ For slides in RemarkJS:
 - You can press "P" to see presenter notes.
 - For the slides with a live terminal, use "W" and "E" to pause/play the recording.
 
-PDF's have also been included when possible. 
+PDF's have also been included when possible.
 
 Note: if you have cloned the repo locally, and are viewing the presentations by double clicking the html files, some embedded content may not display.
 There are several possible solutions:
@@ -19,6 +19,13 @@ There are several possible solutions:
 1. View the content online, everything should be available from the links to GitHub pages.
 2. If you have docker, run `local/run-nginx.sh` to start a web server on port 5080.
 3. For Firefox, go to `about:config` and try setting `privacy.file_unique_origin` to `false`.  See [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) for more details.
+
+## Life of an OSS Maintainer - 2026
+
+Presented at GWU's OSConf, this gives an overview of what the ecosystem is like for OSS maintainers.
+
+- [Presentation](https://sudo-bmitch.github.io/presentations/oss-maintainer-2026/index.html)
+  [[Download pdf](https://sudo-bmitch.github.io/presentations/oss-maintainer-2026/presentation.pdf)]
 
 ## OCI 1.1 Lightning Talk
 
@@ -162,5 +169,4 @@ There was also a webinar given based on the above talk. Slides are almost identi
 
 ## License
 
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public
-License](LICENSE)
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License](LICENSE)
