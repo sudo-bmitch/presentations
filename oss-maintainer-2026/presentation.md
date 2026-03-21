@@ -62,14 +62,14 @@ Note:
 - Nearly free to copy
 - One developer can scale to lots of users <!-- .element: class="fragment" data-fragment-index="2" -->
 - Open source software increases potential users <!-- .element: class="fragment" data-fragment-index="3" -->
-- ... but it also adds a poll of contributors <!-- .element: class="fragment" data-fragment-index="3" -->
+- ... but it also adds a pool of contributors <!-- .element: class="fragment" data-fragment-index="3" -->
 
 Note:
 
 - Unlike manufacturing, and lots of service jobs, software is easily replicated.
   - Paralleled by the music and movie industries.
 - The ability for a developer to scale to lots of users is probably why we are paid so well.
-- Open source adds more potential users, but it also adds a poll of contributors.
+- Open source adds more potential users, but it also adds a pool of contributors.
 
 ------
 
@@ -85,9 +85,9 @@ Note:
 Note:
 
 - Maybe once a week, I see someone asking to contribute to OSS in what I'd describe as a counter-productive way.
-- The focus of the maintainer is on delivering a useful project to the community.
-- While the focus from these requests is often not focused on the community, rather they want some personal gain.
-- These are all requests to do unpaid work.
+- The focus of the maintainer is on producing value for the overall community.
+- Meanwhile many of these requests are looking to extract value from OSS maintainers and projects for themselves.
+- These are often requests to do unpaid work.
 
 ------
 
@@ -107,9 +107,7 @@ Note:
 - Company supported project
 - Peripheral tool
 - Personal side project <!-- .element: class="fragment" data-fragment-index="2" -->
-- Retired <!-- .element: class="fragment" data-fragment-index="2" -->
-- <!-- .element: class="fragment" data-fragment-index="3" -->
-  ~Business model~ <!-- .element: class="fragment" data-fragment-index="3" -->
+- Retired, unemployed, students <!-- .element: class="fragment" data-fragment-index="2" -->
 
 Note:
 
@@ -119,11 +117,9 @@ Note:
   - Accepted changes are often based on whether it will drive more adoption of paid offerings
 - Some companies sponsor OSS of what I call peripheral tools, outside of their core business
   - E.g. a video streaming company releasing their monitoring tool
-- A good number of OSS maintainers are not paid, it's either a side project outside of work, or they are retired/unemployed/student
-- Beware of what I call the "Silicon Valley venture capital business model".
-  - They use OSS to capture the market, and then rug-pull...
-  - Changing the license and start charging for what used to be free.
-  - Cory Doctorow would call this "Enshitification".
+- A good number of OSS maintainers are not paid, it's either
+  - A side project outside of work
+  - Or they are retired/unemployed/student where this doesn't directly detract from their income
 
 ------
 
@@ -219,16 +215,32 @@ Note:
 
 - So now that I've done such a good job selling this, why would anyone want to do it?
 - Some are looking for public recognition or resume material.
-  - That's likely a lot of people here. You want the GitHub history and public activity to get a job.
-  - If you build a project for a resume, even if you abandon it later, that's a net positive.
-  - If you perform a drive-by PR, frequently that creates more work for the maintainers than if they made the change.
+  - This can be done with your own projects, even if you later archive it.
 - Many maintainers are scratching itches, building something they couldn't find elsewhere
-  - Disposable AI projects are eating into this market
+  - Disposable AI projects may eat into this market
 - Sometimes the alternatives have issues, paid, wrong license, wrong design.
-- And there are those that do it as a community service after consuming OSS for much of their career (me).
-  - The fear that OSS is full of older people doesn't scare me.
-  - They've learned over career, seeing the problems and existing tools, and create solutions without a profit motive (rug pull).
-- However if we do want to get more people into OSS earlier, we need to work on funding maintainers, because it is rarely a good business model.
+- And there are those giving back after consuming OSS for their career (me).
+  - Age fears don't concern me, I believe there will constantly be a new supply of experienced older OSS maintainers.
+  - For younger OSS maintainers, we need to work on funding, because it is rarely a good business model.
+
+---
+
+## Takeaways
+
+- OSS maintainers are often solo and unpaid
+- Contributions should focus on creating value
+- Instead of "no":
+  > Thanks for the PR, but it's not something I'm willing to maintain.
+  > I encourage you to maintain your own fork in case others find it useful.
+- That "no" could later become a "yes"
+
+Note:
+
+- Realize that the people you may be working with are often unpaid individuals in their spare time, possibly burned out.
+- Create value, don't extract it.
+- Instead of only saying "no" to a contribution, I'm trying to say:
+  - "Thanks for the PR, but it's not something I'm willing to maintain. I encourage you to maintain your own fork in case others find it useful."
+- Maybe one day I'll change my mind, turning that "no" into a "yes".
 
 ---
 
