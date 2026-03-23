@@ -28,7 +28,7 @@ $ whoami
 - Brandon Mitchell
 - OSS Developer
 - OCI Maintainer, regclient, Docker Captain
-- Mastodon, Slack, Hacker News, Matrix, StackOverflow
+- Former Solutions Architect focused on DevOps
 ```
 
 Note:
@@ -40,8 +40,7 @@ Note:
   - That's the specification and some core projects used by Docker and Kubernetes
   - I'm a maintainer there, on the TOB, and my own side projects like regclient and olareg focus on it
   - I'm also a Docker Captain
-- On the socials, I can be found on Mastodon, various Slacks, Hacker News, I'm trying Matrix, and I occasionally answer questions on StackOverflow
-- When I'm not doing any of this, I like to go sailing on the Bay or take a bike ride on the W&OD
+- Prior to this I was a Solutions Architect in the DevOps ecosystem, helping companies migrate into containers and the cloud, redesigning their build pipelines
 
 ---
 
@@ -50,7 +49,7 @@ Note:
 Note:
 
 - I have a philosophy that if I were to have the same experiences and given the same opportunities of another, I would make their same choices.
-  - So rather than discouraging a behavior, I think it's important to have an understanding of different groups.
+  - So when there are conflicts of interest, I think it's important to have an understanding of different groups.
 - When I attended this conference last year, it was eye opening to me to see how OSS was perceived by the academic community
   - There's a lot of focus on research, grants, and an on-ramp to employment
 - The goal of this talk is to share the experience of what it's like for a non-academic OSS maintainer.
@@ -97,6 +96,7 @@ Note:
 
 Note:
 
+- Burnout happens a lot in the ecosystem, 10 years ago yesterday the maintainer of Left-Pad decided to delete their repo.
 - This comes from the security side, but we see it all over.
 - I'd like to appreciate that this is not a critique/request for the students, but of the faculty.
 
@@ -123,7 +123,7 @@ Note:
 
 ------
 
-## Maintainers Count
+## Maintainer Counts
 
 ![Over 4M NPM projects with 1 maintainer](img/1-maintainer-npm.png) <!-- .element: height="500" -->
 
@@ -229,10 +229,10 @@ Note:
 
 - OSS maintainers are often solo and unpaid
 - Contributions should focus on creating value
-- Instead of "no":
-  > Thanks for the PR, but it's not something I'm willing to maintain.
-  > I encourage you to maintain your own fork in case others find it useful.
-- That "no" could later become a "yes"
+- Instead of "no": <!-- .element: class="fragment" data-fragment-index="2" -->
+  > Thanks for the PR, but it's not something I'm willing to maintain. <!-- .element: class="fragment" data-fragment-index="2" -->
+  > I encourage you to maintain your own fork in case others find it useful. <!-- .element: class="fragment" data-fragment-index="2" -->
+- That "no" could later become a "yes" <!-- .element: class="fragment" data-fragment-index="3" -->
 
 Note:
 
@@ -241,6 +241,7 @@ Note:
 - Instead of only saying "no" to a contribution, I'm trying to say:
   - "Thanks for the PR, but it's not something I'm willing to maintain. I encourage you to maintain your own fork in case others find it useful."
 - Maybe one day I'll change my mind, turning that "no" into a "yes".
+- And hopefully, instead of being upset, imagine walking in the shoes of another.
 
 ---
 
